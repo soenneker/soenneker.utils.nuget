@@ -45,5 +45,6 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.1" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
         <PackageReference Include="NuGet.Protocol" Version="6.9.1" />
+        <PackageReference Include="Soenneker.Libraries.NuGet" Version="2.1.5" />
     </ItemGroup>
 </Project>
