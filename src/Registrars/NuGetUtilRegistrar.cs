@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Soenneker.NuGet.Client.Registrars;
 using Soenneker.Utils.NuGet.Abstract;
 
 namespace Soenneker.Utils.NuGet.Registrars;
@@ -15,6 +16,7 @@ public static class NuGetUtilRegistrar
     public static void AddNuGetUtilAsSingleton(this IServiceCollection services)
     {
         services.TryAddSingleton<INuGetUtil, NuGetUtil>();
+        services.AddNuGetClientAsSingleton();
     }
 
     /// <summary>
@@ -23,5 +25,6 @@ public static class NuGetUtilRegistrar
     public static void AddNuGetUtilAsScoped(this IServiceCollection services)
     {
         services.TryAddScoped<INuGetUtil, NuGetUtil>();
+        services.AddNuGetClientAsSingleton();
     }
 }
