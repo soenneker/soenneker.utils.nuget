@@ -4,6 +4,7 @@ using Xunit;
 using Xunit.Abstractions;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Soenneker.Facts.Local;
 using Soenneker.Utils.NuGet.Responses;
 
 namespace Soenneker.Utils.NuGet.Tests;
@@ -18,27 +19,27 @@ public class NuGetUtilTests : FixturedUnitTest
         _util = Resolve<INuGetUtil>(true);
     }
 
-    [Fact]
+    [LocalFact]
     public async Task Search_should_not_throw()
     {
         NuGetSearchResponse result = await _util.Search("");
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [LocalFact]
     public async Task GetAllVersions_should_not_throw()
     {
         NuGetPackageVersionsResponse? result = await _util.GetAllVersions("");
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [LocalFact]
     public async Task Delete_should_not_throw()
     {
         await _util.Delete("", "", "");
     }
 
-    [Fact]
+    [LocalFact]
     public async Task DeleteAllVersions_should_not_throw()
     {
         await _util.DeleteAllVersions("", "");
