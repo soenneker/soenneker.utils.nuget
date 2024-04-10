@@ -14,22 +14,25 @@ public interface INuGetUtil
     /// Gets the index of available NuGet services from a specified source.
     /// </summary>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>The index of available NuGet services.</returns>
-    ValueTask<NuGetIndexResponse> GetIndex(string source = "https://api.nuget.org/v3/index.json");
+    ValueTask<NuGetIndexResponse> GetIndex(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves the URL for the NuGet search query service.
     /// </summary>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>The URL of the search query service.</returns>
-    ValueTask<string> GetSearchQueryService(string source = "https://api.nuget.org/v3/index.json");
+    ValueTask<string> GetSearchQueryService(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves the URL for the NuGet package base address service.
     /// </summary>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>The URL of the package base address service.</returns>
-    ValueTask<string> GetPackageBaseAddressService(string source = "https://api.nuget.org/v3/index.json");
+    ValueTask<string> GetPackageBaseAddressService(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Searches for a package by name.
@@ -48,6 +51,8 @@ public interface INuGetUtil
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A list of all listed versions of the specified package.</returns>
     ValueTask<List<string>> GetAllListedVersions(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
+
+    ValueTask<string> GetPackagePublishService(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes all versions of a specified package.
@@ -73,6 +78,7 @@ public interface INuGetUtil
     /// </summary>
     /// <param name="packageName">The name of the package.</param>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
+    /// <param name="cancellationToken"></param>
     /// <returns>All versions of the specified package, or null if the package does not exist.</returns>
-    ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = "https://api.nuget.org/v3/index.json");
+    ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 }
