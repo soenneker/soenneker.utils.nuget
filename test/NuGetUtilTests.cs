@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Soenneker.Utils.NuGet.Abstract;
 using Soenneker.Tests.FixturedUnit;
 using Xunit;
@@ -30,6 +31,13 @@ public class NuGetUtilTests : FixturedUnitTest
     public async Task GetAllVersions_should_not_throw()
     {
         NuGetPackageVersionsResponse? result = await _util.GetAllVersions("");
+        result.Should().NotBeNull();
+    }
+
+    [LocalFact]
+    public async Task GetAllListedVersions_should_not_throw()
+    {
+        List<string> result = await _util.GetAllListedVersions("", true);
         result.Should().NotBeNull();
     }
 

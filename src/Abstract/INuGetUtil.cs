@@ -47,10 +47,13 @@ public interface INuGetUtil
     /// Retrieves all listed versions of a package.
     /// </summary>
     /// <param name="packageName">The name of the package.</param>
+    /// <param name="sortDescending">Guarantee that the latest version is at 0 index.</param>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A list of all listed versions of the specified package.</returns>
-    ValueTask<List<string>> GetAllListedVersions(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
+    ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortDescending = false, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
+
+    ValueTask<string?> GetLatestListedVersion(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 
     ValueTask<string> GetPackagePublishService(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 

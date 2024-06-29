@@ -138,7 +138,8 @@ public class NuGetUtil : INuGetUtil
         return response;
     }
 
-    public async ValueTask<List<string>> GetAllListedVersions(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = "https://api.nuget.org/v3/index.json",
+        CancellationToken cancellationToken = default)
     {
         NuGetSearchResponse searchResult = await Search(packageName, source, cancellationToken).NoSync();
 
@@ -151,12 +152,21 @@ public class NuGetUtil : INuGetUtil
 
         result = nuGetVersions.Select(c => c.VersionNumber).ToList()!;
 
+        if (sortByDescending)
+            result = OrderVersions(result);
+
         return result;
+    }
+
+    public async ValueTask<string?> GetLatestListedVersion(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    {
+        List<string> result = await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync();
+        return result.FirstOrDefault();
     }
 
     public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json")
     {
-        List<string> versions = await GetAllListedVersions(packageName, source).NoSync();
+        List<string> versions = await GetAllListedVersions(packageName, false, source).NoSync();
 
         foreach (string version in versions)
         {
@@ -187,5 +197,12 @@ public class NuGetUtil : INuGetUtil
         {
             _logger.LogError(ex, "Exception deleting package ({package}) with version ({version})", packageName, version);
         }
+    }
+
+    private static List<string> OrderVersions(List<string> input)
+    {
+        List<Version> versions = input.Select(c => new Version(c)).ToList();
+        IOrderedEnumerable<Version> ordered = versions.OrderByDescending(v => v);
+        return ordered.Select(c => c.ToString()).ToList();
     }
 }
