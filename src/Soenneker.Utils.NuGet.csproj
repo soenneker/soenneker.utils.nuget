@@ -42,7 +42,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="3.0.1707" />
+        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="3.0.1711" />
         <PackageReference Include="Soenneker.NuGet.Client" Version="3.0.720" />
     </ItemGroup>
 </Project>
