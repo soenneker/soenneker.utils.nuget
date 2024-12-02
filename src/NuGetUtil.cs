@@ -127,6 +127,8 @@ public class NuGetUtil : INuGetUtil
 
     public async ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Getting all versions of package ({package})...", packageName);
+
         HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
         string packageBaseAddress = await GetPackageBaseAddressService(source, cancellationToken).NoSync();
@@ -140,6 +142,8 @@ public class NuGetUtil : INuGetUtil
 
     public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Getting all -listed- versions of package ({package})...", packageName);
+
         NuGetSearchResponse searchResult = await Search(packageName, source, cancellationToken).NoSync();
 
         var result = new List<string>();
@@ -165,6 +169,8 @@ public class NuGetUtil : INuGetUtil
 
     public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
+        _logger.LogInformation("Deleting all versions of package ({package})...", packageName);
+
         List<string> versions = await GetAllListedVersions(packageName, false, source, cancellationToken).NoSync();
 
         foreach (string version in versions)
@@ -186,6 +192,8 @@ public class NuGetUtil : INuGetUtil
         };
 
         httpMessage.Headers.Add("X-NuGet-ApiKey", apiKey);
+
+        _logger.LogInformation("Deleting package ({package}) with version ({version})...", packageName, version);
 
         try
         {
