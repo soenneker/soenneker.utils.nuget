@@ -64,7 +64,8 @@ public interface INuGetUtil
     /// <param name="apiKey">The API key for authentication.</param>
     /// <param name="log">Indicates whether to log the deletion process.</param>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
-    ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json");
+    /// <param name="cancellationToken"></param>
+    ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes a specific version of a package.
@@ -74,7 +75,8 @@ public interface INuGetUtil
     /// <param name="apiKey">The API key for authentication.</param>
     /// <param name="log">Indicates whether to log the deletion process.</param>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
-    ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json");
+    /// <param name="cancellationToken"></param>
+    ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves all versions of a specified package.

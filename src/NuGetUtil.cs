@@ -35,7 +35,7 @@ public class NuGetUtil : INuGetUtil
 
     public async ValueTask<NuGetSearchResponse> Search(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
-        HttpClient client = await _nuGetClient.Get().NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
         string baseUri = await GetSearchQueryService(source, cancellationToken).NoSync();
 
@@ -47,7 +47,7 @@ public class NuGetUtil : INuGetUtil
 
     public async ValueTask<NuGetIndexResponse> GetIndex(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
-        HttpClient client = await _nuGetClient.Get().NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
         NuGetIndexResponse? response = await client.SendToType<NuGetIndexResponse>(source, _logger, cancellationToken).NoSync();
 
@@ -127,7 +127,7 @@ public class NuGetUtil : INuGetUtil
 
     public async ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
-        HttpClient client = await _nuGetClient.Get();
+        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
         string packageBaseAddress = await GetPackageBaseAddressService(source, cancellationToken).NoSync();
 
@@ -138,8 +138,7 @@ public class NuGetUtil : INuGetUtil
         return response;
     }
 
-    public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = "https://api.nuget.org/v3/index.json",
-        CancellationToken cancellationToken = default)
+    public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
         NuGetSearchResponse searchResult = await Search(packageName, source, cancellationToken).NoSync();
 
@@ -164,21 +163,21 @@ public class NuGetUtil : INuGetUtil
         return result.FirstOrDefault();
     }
 
-    public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json")
+    public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
-        List<string> versions = await GetAllListedVersions(packageName, false, source).NoSync();
+        List<string> versions = await GetAllListedVersions(packageName, false, source, cancellationToken).NoSync();
 
         foreach (string version in versions)
         {
-            await Delete(packageName, version, apiKey, log, source).NoSync();
+            await Delete(packageName, version, apiKey, log, source, cancellationToken).NoSync();
         }
     }
 
-    public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json")
+    public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
     {
-        HttpClient client = await _nuGetClient.Get().NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
-        string baseUri = await GetPackagePublishService(source).NoSync();
+        string baseUri = await GetPackagePublishService(source, cancellationToken).NoSync();
 
         var httpMessage = new HttpRequestMessage
         {
@@ -190,7 +189,7 @@ public class NuGetUtil : INuGetUtil
 
         try
         {
-            HttpResponseMessage result = await client.SendAsync(httpMessage).NoSync();
+            HttpResponseMessage result = await client.SendAsync(httpMessage, cancellationToken).NoSync();
             result.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
@@ -201,7 +200,7 @@ public class NuGetUtil : INuGetUtil
 
     private static List<string> OrderVersions(List<string> input)
     {
-        List<Version> versions = input.Select(c => new Version(c)).ToList();
+        IEnumerable<Version> versions = input.Select(c => new Version(c));
         IOrderedEnumerable<Version> ordered = versions.OrderByDescending(v => v);
         return ordered.Select(c => c.ToString()).ToList();
     }
