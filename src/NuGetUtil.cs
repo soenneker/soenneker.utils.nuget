@@ -27,13 +27,19 @@ public class NuGetUtil : INuGetUtil
 
     private readonly ConcurrentDictionary<string, string> _sourceIndexDict = new();
 
+    private const string _searchQueryService = "SearchQueryService";
+    private const string _packageBaseAddress = "PackageBaseAddress/3.0.0";
+    private const string _packagePublish = "PackagePublish/2.0.0";
+
+    public const string NuGetApiIndexUri = "https://api.nuget.org/v3/index.json";
+
     public NuGetUtil(ILogger<NuGetUtil> logger, INuGetClient nuGetClient)
     {
         _logger = logger;
         _nuGetClient = nuGetClient;
     }
 
-    public async ValueTask<NuGetSearchResponse> Search(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<NuGetSearchResponse> Search(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
@@ -45,7 +51,7 @@ public class NuGetUtil : INuGetUtil
         return response!;
     }
 
-    public async ValueTask<NuGetIndexResponse> GetIndex(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<NuGetIndexResponse> GetIndex(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
@@ -57,7 +63,7 @@ public class NuGetUtil : INuGetUtil
         return response;
     }
 
-    public async ValueTask<string> GetServiceFromSource(string service, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<string> GetServiceFromSource(string service, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         NuGetIndexResponse index = await GetIndex(source, cancellationToken).NoSync();
 
@@ -77,55 +83,49 @@ public class NuGetUtil : INuGetUtil
 
     // TODO: Index util
     // TODO: ConcurrentDictionary async extension
-    public async ValueTask<string> GetSearchQueryService(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<string> GetSearchQueryService(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        const string service = "SearchQueryService";
-
-        var key = $"{source}-{service}";
+        var key = $"{source}-{_searchQueryService}";
 
         if (_sourceIndexDict.TryGetValue(source, out string? index))
             return index;
 
-        index = await GetServiceFromSource(service, source, cancellationToken).NoSync();
+        index = await GetServiceFromSource(_searchQueryService, source, cancellationToken).NoSync();
 
         _sourceIndexDict.TryAdd(key, index);
 
         return index;
     }
 
-    public async ValueTask<string> GetPackageBaseAddressService(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<string> GetPackageBaseAddressService(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        const string service = "PackageBaseAddress/3.0.0";
-
-        var key = $"{source}-{service}";
+        var key = $"{source}-{_packageBaseAddress}";
 
         if (_sourceIndexDict.TryGetValue(source, out string? index))
             return index;
 
-        index = await GetServiceFromSource(service, source, cancellationToken).NoSync();
+        index = await GetServiceFromSource(_packageBaseAddress, source, cancellationToken).NoSync();
 
         _sourceIndexDict.TryAdd(key, index);
 
         return index;
     }
 
-    public async ValueTask<string> GetPackagePublishService(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<string> GetPackagePublishService(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        const string service = "PackagePublish/2.0.0";
-
-        var key = $"{source}-{service}";
+        var key = $"{source}-{_packagePublish}";
 
         if (_sourceIndexDict.TryGetValue(key, out string? index))
             return index;
 
-        index = await GetServiceFromSource(service, source, cancellationToken).NoSync();
+        index = await GetServiceFromSource(_packagePublish, source, cancellationToken).NoSync();
 
         _sourceIndexDict.TryAdd(key, index);
 
         return index;
     }
 
-    public async ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Getting all versions of package ({package})...", packageName);
 
@@ -140,9 +140,9 @@ public class NuGetUtil : INuGetUtil
         return response;
     }
 
-    public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation("Getting all -listed- versions of package ({package})...", packageName);
+        _logger.LogInformation("Getting all LISTED versions of package ({package})...", packageName);
 
         NuGetSearchResponse searchResult = await Search(packageName, source, cancellationToken).NoSync();
 
@@ -161,13 +161,13 @@ public class NuGetUtil : INuGetUtil
         return result;
     }
 
-    public async ValueTask<string?> GetLatestListedVersion(string packageName, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         List<string> result = await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync();
         return result.FirstOrDefault();
     }
 
-    public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Deleting all versions of package ({package})...", packageName);
 
@@ -179,17 +179,16 @@ public class NuGetUtil : INuGetUtil
         }
     }
 
-    public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default)
+    public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
         string baseUri = await GetPackagePublishService(source, cancellationToken).NoSync();
 
-        var httpMessage = new HttpRequestMessage
-        {
-            Method = HttpMethod.Delete,
-            RequestUri = new Uri($"{baseUri}/{packageName.ToLowerInvariantFast()}/{version}")
-        };
+        using var httpMessage = new HttpRequestMessage();
+
+        httpMessage.Method = HttpMethod.Delete;
+        httpMessage.RequestUri = new Uri($"{baseUri}/{packageName.ToLowerInvariantFast()}/{version}");
 
         httpMessage.Headers.Add("X-NuGet-ApiKey", apiKey);
 
