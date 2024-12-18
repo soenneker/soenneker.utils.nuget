@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using Soenneker.Utils.NuGet.Abstract;
 using Soenneker.Tests.FixturedUnit;
 using Xunit;
-using Xunit.Abstractions;
+
 using System.Threading.Tasks;
 using FluentAssertions;
 using Soenneker.Facts.Local;
