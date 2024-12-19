@@ -2,10 +2,9 @@ using System.Collections.Generic;
 using Soenneker.Utils.NuGet.Abstract;
 using Soenneker.Tests.FixturedUnit;
 using Xunit;
-
 using System.Threading.Tasks;
 using FluentAssertions;
-using Soenneker.Facts.Local;
+using Soenneker.Facts.Manual;
 using Soenneker.Utils.NuGet.Responses;
 
 namespace Soenneker.Utils.NuGet.Tests;
@@ -20,34 +19,37 @@ public class NuGetUtilTests : FixturedUnitTest
         _util = Resolve<INuGetUtil>(true);
     }
 
-    [LocalFact]
+    [Fact]
+    public void Default() { }
+
+    [ManualFact]
     public async Task Search_should_not_throw()
     {
         NuGetSearchResponse result = await _util.Search("");
         result.Should().NotBeNull();
     }
 
-    [LocalFact]
+    [ManualFact]
     public async Task GetAllVersions_should_not_throw()
     {
         NuGetPackageVersionsResponse? result = await _util.GetAllVersions("");
         result.Should().NotBeNull();
     }
 
-    [LocalFact]
+    [ManualFact]
     public async Task GetAllListedVersions_should_not_throw()
     {
         List<string> result = await _util.GetAllListedVersions("", true);
         result.Should().NotBeNull();
     }
 
-    [LocalFact]
+    [ManualFact]
     public async Task Delete_should_not_throw()
     {
         await _util.Delete("", "", "");
     }
 
-    [LocalFact]
+    [ManualFact]
     public async Task DeleteAllVersions_should_not_throw()
     {
         await _util.DeleteAllVersions("", "");

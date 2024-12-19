@@ -2,8 +2,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Soenneker.Fixtures.Unit;
-using Soenneker.Utils.NuGet.Registrars;
 using Soenneker.Utils.Test;
+using Soenneker.Utils.NuGet.Registrars;
 
 namespace Soenneker.Utils.NuGet.Tests;
 
