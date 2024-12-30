@@ -19,39 +19,51 @@ public class NuGetUtilTests : FixturedUnitTest
         _util = Resolve<INuGetUtil>(true);
     }
 
-    [Fact]
-    public void Default() { }
-
     [ManualFact]
-    public async Task Search_should_not_throw()
+    public async ValueTask Search_should_not_throw()
     {
         NuGetSearchResponse result = await _util.Search("");
         result.Should().NotBeNull();
     }
 
+    [Fact]
+    public async ValueTask GetIndex_should_not_throw()
+    {
+        NuGetIndexResponse result = await _util.GetIndex(cancellationToken: CancellationToken);
+        result.Should().NotBeNull();
+    }
+
     [ManualFact]
-    public async Task GetAllVersions_should_not_throw()
+    public async ValueTask GetAllVersions_should_not_throw()
     {
         NuGetPackageVersionsResponse? result = await _util.GetAllVersions("");
         result.Should().NotBeNull();
     }
 
     [ManualFact]
-    public async Task GetAllListedVersions_should_not_throw()
+    public async ValueTask GetAllListedVersions_should_not_throw()
     {
         List<string> result = await _util.GetAllListedVersions("", true);
         result.Should().NotBeNull();
     }
 
     [ManualFact]
-    public async Task Delete_should_not_throw()
+    public async ValueTask Delete_should_not_throw()
     {
         await _util.Delete("", "", "");
     }
 
     [ManualFact]
-    public async Task DeleteAllVersions_should_not_throw()
+    public async ValueTask DeleteAllVersions_should_not_throw()
     {
         await _util.DeleteAllVersions("", "");
+    }
+
+    [Fact]
+    public async ValueTask GetTransitivePackages_should_not_throw()
+    {
+        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
+
+        result.Should().NotBeNullOrEmpty();
     }
 }

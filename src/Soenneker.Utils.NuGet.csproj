@@ -33,6 +33,16 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>icon.png</PackageIcon>
     </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Remove="Responses\Catalog\NewFolder\**" />
+      <EmbeddedResource Remove="Responses\Catalog\NewFolder\**" />
+      <None Remove="Responses\Catalog\NewFolder\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Soenneker.Utils.NuGet.csproj.Backup.tmp" />
+    </ItemGroup>
     
     <ItemGroup>
         <None Include="..\CONTRIBUTING.md" Link="CONTRIBUTING.md" />
@@ -42,7 +52,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="3.0.2224" />
-        <PackageReference Include="Soenneker.NuGet.Client" Version="3.0.939" />
+        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="3.0.2256" />
+        <PackageReference Include="Soenneker.NuGet.Client" Version="3.0.953" />
     </ItemGroup>
 </Project>

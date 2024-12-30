@@ -16,23 +16,9 @@ public interface INuGetUtil
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
     /// <param name="cancellationToken"></param>
     /// <returns>The index of available NuGet services.</returns>
-    ValueTask<NuGetIndexResponse> GetIndex(string source = "https://api.nuget.org/v3/index.json", CancellationToken cancellationToken = default);
+    ValueTask<NuGetIndexResponse> GetIndex(string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Retrieves the URL for the NuGet search query service.
-    /// </summary>
-    /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
-    /// <param name="cancellationToken"></param>
-    /// <returns>The URL of the search query service.</returns>
-    ValueTask<string> GetSearchQueryService(string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Retrieves the URL for the NuGet package base address service.
-    /// </summary>
-    /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
-    /// <param name="cancellationToken"></param>
-    /// <returns>The URL of the package base address service.</returns>
-    ValueTask<string> GetPackageBaseAddressService(string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
+    ValueTask<string> GetServiceUri(string service, string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Searches for a package by name.
@@ -41,7 +27,7 @@ public interface INuGetUtil
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>The search results for the specified package.</returns>
-    ValueTask<NuGetSearchResponse> Search(string packageName, string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
+    ValueTask<NuGetSearchResponse?> Search(string packageName, string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Retrieves all listed versions of a package.
@@ -54,8 +40,6 @@ public interface INuGetUtil
     ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortDescending = false, string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
-
-    ValueTask<string> GetPackagePublishService(string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Deletes all versions of a specified package.
@@ -86,4 +70,12 @@ public interface INuGetUtil
     /// <param name="cancellationToken"></param>
     /// <returns>All versions of the specified package, or null if the package does not exist.</returns>
     ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
+
+    ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(
+        string packageName,
+        string version,
+        string source = NuGetUtil.NuGetApiIndexUri,
+        CancellationToken cancellationToken = default);
+
+    ValueTask<string?> GetCatalogUri(string packageName, string version, string source = NuGetUtil.NuGetApiIndexUri, CancellationToken cancellationToken = default);
 }
