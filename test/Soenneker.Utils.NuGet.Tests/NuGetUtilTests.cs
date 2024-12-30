@@ -75,7 +75,7 @@ public class NuGetUtilTests : FixturedUnitTest
 
         List<string> keys = result.Select(c => c.Key).ToList();
 
-        string? key = keys.FirstOrDefault(c => c == "soenneker.extensions.string");
+        string? key = keys.FirstOrDefault(c => c == "Soenneker.Extensions.String");
         key.Should().BeNull();
     }
 }
