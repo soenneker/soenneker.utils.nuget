@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Soenneker.Facts.Manual;
 using Soenneker.Utils.NuGet.Responses;
+using System.Linq;
 
 namespace Soenneker.Utils.NuGet.Tests;
 
@@ -65,5 +66,16 @@ public class NuGetUtilTests : FixturedUnitTest
         List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
 
         result.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async ValueTask GetTransitivePackages_should_not_return_original()
+    {
+        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
+
+        List<string> keys = result.Select(c => c.Key).ToList();
+
+        string? key = keys.FirstOrDefault(c => c == "soenneker.extensions.string");
+        key.Should().BeNull();
     }
 }

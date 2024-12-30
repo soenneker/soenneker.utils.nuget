@@ -37,6 +37,8 @@ public class NuGetUtil : INuGetUtil
 
     public const string NuGetApiIndexUri = "https://api.nuget.org/v3/index.json";
 
+    private readonly ConcurrentDictionary<(string PackageName, string Version), List<KeyValuePair<string, string>>> _dependencyCache = new();
+
     public NuGetUtil(ILogger<NuGetUtil> logger, INuGetClient nuGetClient)
     {
         _logger = logger;
@@ -192,14 +194,17 @@ public class NuGetUtil : INuGetUtil
         }
     }
 
-    public async ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(
-        string packageName,
-        string version,
-        string source = NuGetApiIndexUri,
-        CancellationToken cancellationToken = default)
+    public async ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(string packageName, string version,
+        string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         packageName = packageName.ToLowerInvariantFast();
         version = version.ToLowerInvariantFast();
+
+        // Check if the result is already cached
+        if (_dependencyCache.TryGetValue((packageName, version), out List<KeyValuePair<string, string>>? cachedDependencies))
+        {
+            return cachedDependencies;
+        }
 
         var visited = new HashSet<string>();
         var dependencies = new List<KeyValuePair<string, string>>();
@@ -212,17 +217,17 @@ public class NuGetUtil : INuGetUtil
         {
             (string currentId, string currentVersion) = toProcess.Dequeue();
 
-            // Only skip adding the original package to the result
-            bool isOriginalPackage = currentId == packageName && currentVersion == version;
-
-            if (!isOriginalPackage && !visited.Add($"{currentId}@{currentVersion}"))
-                continue;
-
-            if (!isOriginalPackage)
+            // Skip if already processed and cached
+            if (_dependencyCache.TryGetValue((currentId, currentVersion), out List<KeyValuePair<string, string>>? cachedInnerDependencies))
             {
-                // Add the dependency to the result list
-                dependencies.Add(new KeyValuePair<string, string>(currentId, currentVersion));
+                // Add cached dependencies directly to the result
+                dependencies.AddRange(cachedInnerDependencies);
+                continue;
             }
+
+            // Skip if already visited in this traversal
+            if (!visited.Add($"{currentId}@{currentVersion}"))
+                continue;
 
             string? catalogUri = await GetCatalogUri(currentId, currentVersion, source, cancellationToken).NoSync();
 
@@ -236,6 +241,8 @@ public class NuGetUtil : INuGetUtil
             if (packageMetadata?.DependencyGroups == null)
                 continue;
 
+            var currentDependencies = new List<KeyValuePair<string, string>>();
+
             foreach (NuGetDependencyGroup group in packageMetadata.DependencyGroups)
             {
                 if (group.Dependencies == null)
@@ -243,10 +250,21 @@ public class NuGetUtil : INuGetUtil
 
                 foreach (NuGetDependency dependency in group.Dependencies)
                 {
+                    var dependencyPair = new KeyValuePair<string, string>(dependency.DependencyId, ExtractVersionFromRange(dependency.Range));
+                    currentDependencies.Add(dependencyPair);
                     toProcess.Enqueue((dependency.DependencyId, ExtractVersionFromRange(dependency.Range)));
                 }
             }
+
+            // Cache the dependencies for the current package/version
+            _dependencyCache[(currentId, currentVersion)] = currentDependencies;
+
+            // Add current dependencies to the result
+            dependencies.AddRange(currentDependencies);
         }
+
+        // Cache the final dependencies for the requested package/version
+        _dependencyCache[(packageName, version)] = dependencies;
 
         return dependencies;
     }
