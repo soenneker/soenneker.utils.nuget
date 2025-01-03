@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using Soenneker.Utils.NuGet.Responses.Catalog.Partials;
-using Soenneker.Utils.NuGet.Responses.Partials;
 
 namespace Soenneker.Utils.NuGet.Responses.Catalog;
 

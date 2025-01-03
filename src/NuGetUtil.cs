@@ -19,7 +19,6 @@ using Soenneker.Utils.NuGet.Responses.Catalog;
 using Soenneker.Utils.NuGet.Responses.Catalog.Partials;
 using System.Text.RegularExpressions;
 
-
 namespace Soenneker.Utils.NuGet;
 
 /// <inheritdoc cref="INuGetUtil"/>
@@ -51,7 +50,7 @@ public class NuGetUtil : INuGetUtil
 
         string baseUri = await GetServiceUri(_searchQueryService, source, cancellationToken).NoSync();
 
-        string uri = baseUri + $"?q={packageName.ToLowerInvariantFast()}&prerelease=true&semVerLevel=2.0.0";
+        var uri = $"{baseUri}?q={packageName.ToLowerInvariantFast()}&prerelease=true&semVerLevel=2.0.0";
 
         NuGetSearchResponse? response = await client.TrySendToType<NuGetSearchResponse>(uri, _logger, cancellationToken).NoSync();
         return response;
@@ -269,6 +268,71 @@ public class NuGetUtil : INuGetUtil
         return dependencies;
     }
 
+    public async ValueTask<List<NuGetDataResponse>> GetAllPackages(string owner, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    {
+        var allPackages = new List<NuGetDataResponse>();
+        var skip = 0;
+        const int take = 100;
+
+        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
+
+        string baseUri = await GetServiceUri(_searchQueryService, source, cancellationToken).NoSync();
+
+        while (true)
+        {
+            var searchUrl = $"{baseUri}?q={owner}&take={take}&skip={skip}";
+
+            NuGetSearchResponse? altResponse = await client.TrySendToType<NuGetSearchResponse>(searchUrl, _logger, cancellationToken).NoSync();
+
+            if (altResponse == null || !altResponse.Data.Populated())
+                break;
+
+            foreach (NuGetDataResponse data in altResponse.Data)
+            {
+                if (data.Owners.IsNullOrEmpty())
+                    continue;
+
+                if (data.Owners.Contains(owner, StringComparer.OrdinalIgnoreCase))
+                {
+                    allPackages.Add(data);
+                }
+            }
+
+            if (altResponse.Data.Count < take)
+                break; // No more results to paginate through
+
+            skip += take; // Move to the next page
+        }
+
+        return allPackages;
+    }
+
+    public async ValueTask<int> GetTotalDownloads(string owner, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    {
+        // Get all packages for the owner
+        List<NuGetDataResponse> allPackages = await GetAllPackages(owner, source, cancellationToken);
+
+        var totalDownloads = 0;
+
+        // Aggregate downloads for all versions of all packages
+        foreach (NuGetDataResponse package in allPackages)
+        {
+            if (package.Versions.Populated())
+            {
+                foreach (NuGetPackageVersionResponse version in package.Versions)
+                {
+                    totalDownloads += version.Downloads;
+                }
+            }
+            else
+            {
+                // If no versions, add the total downloads at the package level
+                totalDownloads += package.TotalDownloads;
+            }
+        }
+
+        return totalDownloads;
+    }
 
     private static string ExtractVersionFromRange(string range)
     {

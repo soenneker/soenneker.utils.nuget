@@ -1,4 +1,3 @@
-using Soenneker.Utils.NuGet.Responses.Partials;
 using System.Text.Json.Serialization;
 
 namespace Soenneker.Utils.NuGet.Responses.Catalog.Partials;

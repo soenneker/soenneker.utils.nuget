@@ -7,6 +7,8 @@ using FluentAssertions;
 using Soenneker.Facts.Manual;
 using Soenneker.Utils.NuGet.Responses;
 using System.Linq;
+using Soenneker.Utils.NuGet.Responses.Partials;
+using Soenneker.Facts.Local;
 
 namespace Soenneker.Utils.NuGet.Tests;
 
@@ -77,5 +79,17 @@ public class NuGetUtilTests : FixturedUnitTest
 
         string? key = keys.FirstOrDefault(c => c == "Soenneker.Extensions.String");
         key.Should().BeNull();
+    }
+
+    [LocalFact]
+    public async ValueTask GetAllPackages()
+    {
+        List<NuGetDataResponse> result = await _util.GetAllPackages("", cancellationToken: CancellationToken);
+    }
+
+    [LocalFact]
+    public async ValueTask GetTotalDownloads()
+    {
+       var result = await _util.GetTotalDownloads("", cancellationToken: CancellationToken);
     }
 }
