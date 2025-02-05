@@ -62,7 +62,7 @@ public class NuGetUtilTests : FixturedUnitTest
         await _util.DeleteAllVersions("", "");
     }
 
-    [Fact]
+    [LocalFact]
     public async ValueTask GetTransitivePackages_should_not_throw()
     {
         List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
@@ -70,7 +70,7 @@ public class NuGetUtilTests : FixturedUnitTest
         result.Should().NotBeNullOrEmpty();
     }
 
-    [Fact]
+    [LocalFact]
     public async ValueTask GetTransitivePackages_should_not_return_original()
     {
         List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
@@ -90,6 +90,6 @@ public class NuGetUtilTests : FixturedUnitTest
     [LocalFact]
     public async ValueTask GetTotalDownloads()
     {
-       var result = await _util.GetTotalDownloads("", cancellationToken: CancellationToken);
+       var result = await _util.GetTotalDownloads("soenneker", cancellationToken: CancellationToken);
     }
 }
