@@ -3,7 +3,7 @@ using Soenneker.Utils.NuGet.Abstract;
 using Soenneker.Tests.FixturedUnit;
 using Xunit;
 using System.Threading.Tasks;
-using FluentAssertions;
+using AwesomeAssertions;
 using Soenneker.Facts.Manual;
 using Soenneker.Utils.NuGet.Responses;
 using System.Linq;
