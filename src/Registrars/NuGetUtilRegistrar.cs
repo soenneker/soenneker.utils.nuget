@@ -15,8 +15,8 @@ public static class NuGetUtilRegistrar
     /// </summary>
     public static IServiceCollection AddNuGetUtilAsSingleton(this IServiceCollection services)
     {
-        services.TryAddSingleton<INuGetUtil, NuGetUtil>();
-        services.AddNuGetClientAsSingleton();
+        services.AddNuGetClientAsSingleton().TryAddSingleton<INuGetUtil, NuGetUtil>();
+
         return services;
     }
 
@@ -25,8 +25,8 @@ public static class NuGetUtilRegistrar
     /// </summary>
     public static IServiceCollection AddNuGetUtilAsScoped(this IServiceCollection services)
     {
-        services.TryAddScoped<INuGetUtil, NuGetUtil>();
-        services.AddNuGetClientAsSingleton();
+        services.AddNuGetClientAsSingleton().TryAddScoped<INuGetUtil, NuGetUtil>();
+
         return services;
     }
 }

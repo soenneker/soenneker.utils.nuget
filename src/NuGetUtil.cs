@@ -22,7 +22,7 @@ using System.Text.RegularExpressions;
 namespace Soenneker.Utils.NuGet;
 
 /// <inheritdoc cref="INuGetUtil"/>
-public class NuGetUtil : INuGetUtil
+public sealed partial class NuGetUtil : INuGetUtil
 {
     private readonly ILogger<NuGetUtil> _logger;
     private readonly INuGetClient _nuGetClient;
@@ -52,8 +52,7 @@ public class NuGetUtil : INuGetUtil
 
         var uri = $"{baseUri}?q={packageName.ToLowerInvariantFast()}&prerelease=true&semVerLevel=2.0.0";
 
-        NuGetSearchResponse? response = await client.TrySendToType<NuGetSearchResponse>(uri, _logger, cancellationToken).NoSync();
-        return response;
+        return await client.TrySendToType<NuGetSearchResponse>(uri, _logger, cancellationToken).NoSync();
     }
 
     public async ValueTask<NuGetIndexResponse> GetIndex(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
@@ -123,9 +122,7 @@ public class NuGetUtil : INuGetUtil
 
         var packageUrl = $"{packageBaseAddress}{packageName.ToLowerInvariantFast()}/index.json";
 
-        NuGetPackageVersionsResponse? response = await client.TrySendToType<NuGetPackageVersionsResponse>(packageUrl, _logger, cancellationToken).NoSync();
-
-        return response;
+        return await client.TrySendToType<NuGetPackageVersionsResponse>(packageUrl, _logger, cancellationToken).NoSync();
     }
 
     public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
@@ -151,8 +148,7 @@ public class NuGetUtil : INuGetUtil
 
     public async ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        List<string> result = await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync();
-        return result.FirstOrDefault();
+        return (await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync()).FirstOrDefault();
     }
 
     public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
@@ -337,7 +333,7 @@ public class NuGetUtil : INuGetUtil
     private static string ExtractVersionFromRange(string range)
     {
         // Use a regex to match a version number at the start of the string
-        Match match = Regex.Match(range, @"\[(\d+\.\d+\.\d+)");
+        Match match = VersionExtractionRegex().Match(range);
         return match.Success ? match.Groups[1].Value : "";
     }
 
@@ -347,4 +343,7 @@ public class NuGetUtil : INuGetUtil
         IOrderedEnumerable<Version> ordered = versions.OrderByDescending(v => v);
         return ordered.Select(c => c.ToString()).ToList();
     }
+
+    [GeneratedRegex(@"\[(\d+\.\d+\.\d+)")]
+    private static partial Regex VersionExtractionRegex();
 }
