@@ -44,7 +44,7 @@ public interface INuGetUtil
     ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes all versions of a specified package.
+    /// Unlists all versions of a specified package.
     /// </summary>
     /// <param name="packageName">The name of the package to delete.</param>
     /// <param name="apiKey">The API key for authentication.</param>

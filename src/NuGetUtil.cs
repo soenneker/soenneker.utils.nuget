@@ -1,23 +1,24 @@
-using System;
-using Soenneker.Utils.NuGet.Abstract;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System.Threading;
 using Microsoft.Extensions.Logging;
-using Soenneker.NuGet.Client.Abstract;
-using Soenneker.Utils.NuGet.Responses;
-using Soenneker.Extensions.String;
-using Soenneker.Utils.NuGet.Responses.Partials;
 using Soenneker.Extensions.Enumerable;
-using System.Linq;
-using System.Collections.Concurrent;
 using Soenneker.Extensions.HttpClient;
+using Soenneker.Extensions.String;
 using Soenneker.Extensions.Task;
 using Soenneker.Extensions.ValueTask;
+using Soenneker.NuGet.Client.Abstract;
+using Soenneker.Utils.Delay;
+using Soenneker.Utils.NuGet.Abstract;
+using Soenneker.Utils.NuGet.Responses;
 using Soenneker.Utils.NuGet.Responses.Catalog;
 using Soenneker.Utils.NuGet.Responses.Catalog.Partials;
+using Soenneker.Utils.NuGet.Responses.Partials;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Soenneker.Utils.NuGet;
 
@@ -99,7 +100,8 @@ public sealed partial class NuGetUtil : INuGetUtil
         return index;
     }
 
-    public async ValueTask<string?> GetCatalogUri(string packageName, string version, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    public async ValueTask<string?> GetCatalogUri(string packageName, string version, string source = NuGetApiIndexUri,
+        CancellationToken cancellationToken = default)
     {
         string registrationUri = await GetServiceUri(_registrationService, source, cancellationToken).NoSync();
 
@@ -107,12 +109,14 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         var packageRegistrationUri = $"{registrationUri}{packageName.ToLowerInvariantFast()}/{version.ToLowerInvariantFast()}.json";
 
-        NuGetRegistrationResponse? registrationResponse = await client.TrySendToType<NuGetRegistrationResponse>(packageRegistrationUri, _logger, cancellationToken).NoSync();
+        NuGetRegistrationResponse? registrationResponse =
+            await client.TrySendToType<NuGetRegistrationResponse>(packageRegistrationUri, _logger, cancellationToken).NoSync();
 
         return registrationResponse?.CatalogEntry;
     }
 
-    public async ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    public async ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = NuGetApiIndexUri,
+        CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Getting all versions of package ({package})...", packageName);
 
@@ -125,7 +129,8 @@ public sealed partial class NuGetUtil : INuGetUtil
         return await client.TrySendToType<NuGetPackageVersionsResponse>(packageUrl, _logger, cancellationToken).NoSync();
     }
 
-    public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = NuGetApiIndexUri,
+        CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Getting all LISTED versions of package ({package})...", packageName);
 
@@ -151,19 +156,48 @@ public sealed partial class NuGetUtil : INuGetUtil
         return (await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync()).FirstOrDefault();
     }
 
-    public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri,
+        CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Deleting all versions of package ({package})...", packageName);
 
         List<string> versions = await GetAllListedVersions(packageName, false, source, cancellationToken).NoSync();
 
-        foreach (string version in versions)
+        int total = versions.Count;
+        _logger.LogInformation("Found {count} versions of package ({package}) to delete.", total, packageName);
+
+        const int batchSize = 240;
+        const int secondsPerBatch = 3660; // 1 batch/hour = 3600 seconds + grace
+
+        var batchCount = (int) Math.Ceiling(total / (double) batchSize);
+        TimeSpan estimatedDuration = TimeSpan.FromSeconds(batchCount * secondsPerBatch);
+
+        _logger.LogInformation(
+            "Estimated time to delete {Total} versions: {EstimatedDurationHours}h {EstimatedDurationMinutes}m ({BatchCount} batches at 1 per hour).", total,
+            estimatedDuration.Hours, estimatedDuration.Minutes, batchCount);
+
+        for (var i = 0; i < total; i += batchSize)
         {
-            await Delete(packageName, version, apiKey, log, source, cancellationToken).NoSync();
+            List<string> batch = versions.Skip(i).Take(batchSize).ToList();
+
+            _logger.LogInformation("Deleting batch {start}-{end} of {total}...", i + 1, Math.Min(i + batchSize, total), total);
+
+            foreach (string version in batch)
+            {
+                await Delete(packageName, version, apiKey, log, source, cancellationToken).NoSync();
+            }
+
+            if (i + batchSize < total)
+            {
+                await DelayUtil.DelaySeconds(secondsPerBatch, _logger, cancellationToken).NoSync();
+            }
         }
+
+        _logger.LogInformation("Finished deleting all versions of package ({package}).", packageName);
     }
 
-    public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = NuGetApiIndexUri,
+        CancellationToken cancellationToken = default)
     {
         HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
 
@@ -189,8 +223,8 @@ public sealed partial class NuGetUtil : INuGetUtil
         }
     }
 
-    public async ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(string packageName, string version,
-        string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    public async ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(string packageName, string version, string source = NuGetApiIndexUri,
+        CancellationToken cancellationToken = default)
     {
         packageName = packageName.ToLowerInvariantFast();
         version = version.ToLowerInvariantFast();
@@ -264,7 +298,8 @@ public sealed partial class NuGetUtil : INuGetUtil
         return dependencies;
     }
 
-    public async ValueTask<List<NuGetDataResponse>> GetAllPackages(string owner, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
+    public async ValueTask<List<NuGetDataResponse>> GetAllPackages(string owner, string source = NuGetApiIndexUri,
+        CancellationToken cancellationToken = default)
     {
         var allPackages = new List<NuGetDataResponse>();
         var skip = 0;
