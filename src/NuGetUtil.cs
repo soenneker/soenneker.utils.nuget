@@ -28,6 +28,25 @@ public sealed partial class NuGetUtil : INuGetUtil
     private readonly ILogger<NuGetUtil> _logger;
     private readonly INuGetClient _nuGetClient;
 
+    private sealed class PackageVersionKeyComparer : IEqualityComparer<(string PackageName, string Version)>
+    {
+        internal static readonly PackageVersionKeyComparer Instance = new();
+
+        public bool Equals((string PackageName, string Version) x, (string PackageName, string Version) y)
+            => StringComparer.OrdinalIgnoreCase.Equals(x.PackageName, y.PackageName) &&
+               StringComparer.OrdinalIgnoreCase.Equals(x.Version, y.Version);
+
+        public int GetHashCode((string PackageName, string Version) obj)
+        {
+            unchecked
+            {
+                int h = StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PackageName);
+                h = (h * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Version);
+                return h;
+            }
+        }
+    }
+
     private readonly ConcurrentDictionary<string, string> _sourceIndexDict = new();
 
     private const string _searchQueryService = "SearchQueryService";
@@ -235,7 +254,7 @@ public sealed partial class NuGetUtil : INuGetUtil
             return cachedDependencies;
         }
 
-        var visited = new HashSet<string>();
+        var visited = new HashSet<(string PackageName, string Version)>(PackageVersionKeyComparer.Instance);
         var dependencies = new List<KeyValuePair<string, string>>();
         var toProcess = new Queue<(string Id, string Version)>();
         toProcess.Enqueue((packageName, version));
@@ -255,7 +274,7 @@ public sealed partial class NuGetUtil : INuGetUtil
             }
 
             // Skip if already visited in this traversal
-            if (!visited.Add($"{currentId}@{currentVersion}"))
+            if (!visited.Add((currentId, currentVersion)))
                 continue;
 
             string? catalogUri = await GetCatalogUri(currentId, currentVersion, source, cancellationToken).NoSync();
