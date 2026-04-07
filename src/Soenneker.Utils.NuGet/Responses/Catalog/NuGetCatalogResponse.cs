@@ -70,8 +70,19 @@ public record NuGetCatalogResponse
     [JsonPropertyName("readmeFile")]
     public string? ReadmeFile { get; set; }
 
+    [JsonPropertyName("releaseNotes")]
+    public string? ReleaseNotes { get; set; }
+
     [JsonPropertyName("repository")]
-    public string? Repository { get; set; }
+    [JsonConverter(typeof(NuGetRepositoryConverter))]
+    public NuGetRepository? Repository { get; set; }
+
+    [JsonPropertyName("requireLicenseAcceptance")]
+    public bool? RequireLicenseAcceptance { get; set; }
+
+    [JsonPropertyName("serviceable")]
+    [JsonConverter(typeof(NuGetFlexibleBooleanConverter))]
+    public bool? Serviceable { get; set; }
 
     [JsonPropertyName("verbatimVersion")]
     public string? VerbatimVersion { get; set; }

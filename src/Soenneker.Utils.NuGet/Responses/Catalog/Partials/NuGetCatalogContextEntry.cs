@@ -9,5 +9,8 @@ namespace Soenneker.Utils.NuGet.Responses.Catalog.Partials
 
         [JsonPropertyName("@container")]
         public string? Container { get; set; }
+
+        [JsonPropertyName("@type")]
+        public string? Type { get; set; }
     }
 }

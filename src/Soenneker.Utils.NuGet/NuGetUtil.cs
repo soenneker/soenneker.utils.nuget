@@ -28,25 +28,6 @@ public sealed partial class NuGetUtil : INuGetUtil
     private readonly ILogger<NuGetUtil> _logger;
     private readonly INuGetClient _nuGetClient;
 
-    private sealed class PackageVersionKeyComparer : IEqualityComparer<(string PackageName, string Version)>
-    {
-        internal static readonly PackageVersionKeyComparer Instance = new();
-
-        public bool Equals((string PackageName, string Version) x, (string PackageName, string Version) y)
-            => StringComparer.OrdinalIgnoreCase.Equals(x.PackageName, y.PackageName) &&
-               StringComparer.OrdinalIgnoreCase.Equals(x.Version, y.Version);
-
-        public int GetHashCode((string PackageName, string Version) obj)
-        {
-            unchecked
-            {
-                int h = StringComparer.OrdinalIgnoreCase.GetHashCode(obj.PackageName);
-                h = (h * 397) ^ StringComparer.OrdinalIgnoreCase.GetHashCode(obj.Version);
-                return h;
-            }
-        }
-    }
-
     private readonly ConcurrentDictionary<string, string> _sourceIndexDict = new();
 
     private const string _searchQueryService = "SearchQueryService";
@@ -66,20 +47,25 @@ public sealed partial class NuGetUtil : INuGetUtil
 
     public async ValueTask<NuGetSearchResponse?> Search(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken)
+                                              .NoSync();
 
-        string baseUri = await GetServiceUri(_searchQueryService, source, cancellationToken).NoSync();
+        string baseUri = await GetServiceUri(_searchQueryService, source, cancellationToken)
+            .NoSync();
 
         var uri = $"{baseUri}?q={packageName.ToLowerInvariantFast()}&prerelease=true&semVerLevel=2.0.0";
 
-        return await client.TrySendToType<NuGetSearchResponse>(uri, _logger, cancellationToken).NoSync();
+        return await client.TrySendToType<NuGetSearchResponse>(uri, _logger, cancellationToken)
+                           .NoSync();
     }
 
     public async ValueTask<NuGetIndexResponse> GetIndex(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken)
+                                              .NoSync();
 
-        NuGetIndexResponse? response = await client.TrySendToType<NuGetIndexResponse>(source, _logger, cancellationToken).NoSync();
+        NuGetIndexResponse? response = await client.TrySendToType<NuGetIndexResponse>(source, _logger, cancellationToken)
+                                                   .NoSync();
 
         if (response == null || response.Resources.IsNullOrEmpty())
             throw new InvalidOperationException("Index is not properly formatted or empty");
@@ -89,7 +75,8 @@ public sealed partial class NuGetUtil : INuGetUtil
 
     public async ValueTask<string> GetServiceFromSource(string service, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        NuGetIndexResponse index = await GetIndex(source, cancellationToken).NoSync();
+        NuGetIndexResponse index = await GetIndex(source, cancellationToken)
+            .NoSync();
 
         foreach (NuGetResourceResponse resource in index.Resources!)
         {
@@ -112,7 +99,8 @@ public sealed partial class NuGetUtil : INuGetUtil
         if (_sourceIndexDict.TryGetValue(key, out string? index))
             return index;
 
-        index = await GetServiceFromSource(service, source, cancellationToken).NoSync();
+        index = await GetServiceFromSource(service, source, cancellationToken)
+            .NoSync();
 
         _sourceIndexDict.TryAdd(key, index);
 
@@ -122,14 +110,17 @@ public sealed partial class NuGetUtil : INuGetUtil
     public async ValueTask<string?> GetCatalogUri(string packageName, string version, string source = NuGetApiIndexUri,
         CancellationToken cancellationToken = default)
     {
-        string registrationUri = await GetServiceUri(_registrationService, source, cancellationToken).NoSync();
+        string registrationUri = await GetServiceUri(_registrationService, source, cancellationToken)
+            .NoSync();
 
-        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken)
+                                              .NoSync();
 
         var packageRegistrationUri = $"{registrationUri}{packageName.ToLowerInvariantFast()}/{version.ToLowerInvariantFast()}.json";
 
-        NuGetRegistrationResponse? registrationResponse =
-            await client.TrySendToType<NuGetRegistrationResponse>(packageRegistrationUri, _logger, cancellationToken).NoSync();
+        NuGetRegistrationResponse? registrationResponse = await client
+                                                                .TrySendToType<NuGetRegistrationResponse>(packageRegistrationUri, _logger, cancellationToken)
+                                                                .NoSync();
 
         return registrationResponse?.CatalogEntry;
     }
@@ -139,13 +130,16 @@ public sealed partial class NuGetUtil : INuGetUtil
     {
         _logger.LogInformation("Getting all versions of package ({package})...", packageName);
 
-        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken)
+                                              .NoSync();
 
-        string packageBaseAddress = await GetServiceUri(_packageBaseAddressService, source, cancellationToken).NoSync();
+        string packageBaseAddress = await GetServiceUri(_packageBaseAddressService, source, cancellationToken)
+            .NoSync();
 
         var packageUrl = $"{packageBaseAddress}{packageName.ToLowerInvariantFast()}/index.json";
 
-        return await client.TrySendToType<NuGetPackageVersionsResponse>(packageUrl, _logger, cancellationToken).NoSync();
+        return await client.TrySendToType<NuGetPackageVersionsResponse>(packageUrl, _logger, cancellationToken)
+                           .NoSync();
     }
 
     public async ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortByDescending = false, string source = NuGetApiIndexUri,
@@ -153,16 +147,19 @@ public sealed partial class NuGetUtil : INuGetUtil
     {
         _logger.LogInformation("Getting all LISTED versions of package ({package})...", packageName);
 
-        NuGetSearchResponse? searchResult = await Search(packageName, source, cancellationToken).NoSync();
+        NuGetSearchResponse? searchResult = await Search(packageName, source, cancellationToken)
+            .NoSync();
 
         var result = new List<string>();
 
-        List<NuGetPackageVersionResponse>? nuGetVersions = searchResult?.Data?.FirstOrDefault()?.Versions;
+        List<NuGetPackageVersionResponse>? nuGetVersions = searchResult?.Data?.FirstOrDefault()
+                                                                       ?.Versions;
 
         if (nuGetVersions.IsNullOrEmpty())
             return result;
 
-        result = nuGetVersions.Select(c => c.VersionNumber).ToList()!;
+        result = nuGetVersions.Select(c => c.VersionNumber)
+                              .ToList()!;
 
         if (sortByDescending)
             result = OrderVersions(result);
@@ -172,7 +169,8 @@ public sealed partial class NuGetUtil : INuGetUtil
 
     public async ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        return (await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync()).FirstOrDefault();
+        return (await GetAllListedVersions(packageName, true, source, cancellationToken)
+            .NoSync()).FirstOrDefault();
     }
 
     public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri,
@@ -180,7 +178,8 @@ public sealed partial class NuGetUtil : INuGetUtil
     {
         _logger.LogInformation("Deleting all versions of package ({package})...", packageName);
 
-        List<string> versions = await GetAllListedVersions(packageName, false, source, cancellationToken).NoSync();
+        List<string> versions = await GetAllListedVersions(packageName, false, source, cancellationToken)
+            .NoSync();
 
         int total = versions.Count;
         _logger.LogInformation("Found {count} versions of package ({package}) to delete.", total, packageName);
@@ -188,7 +187,7 @@ public sealed partial class NuGetUtil : INuGetUtil
         const int batchSize = 240;
         const int secondsPerBatch = 3660; // 1 batch/hour = 3600 seconds + grace
 
-        var batchCount = (int) Math.Ceiling(total / (double) batchSize);
+        var batchCount = (int)Math.Ceiling(total / (double)batchSize);
         TimeSpan estimatedDuration = TimeSpan.FromSeconds(batchCount * secondsPerBatch);
 
         _logger.LogInformation(
@@ -197,18 +196,22 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         for (var i = 0; i < total; i += batchSize)
         {
-            List<string> batch = versions.Skip(i).Take(batchSize).ToList();
+            List<string> batch = versions.Skip(i)
+                                         .Take(batchSize)
+                                         .ToList();
 
             _logger.LogInformation("Deleting batch {start}-{end} of {total}...", i + 1, Math.Min(i + batchSize, total), total);
 
             foreach (string version in batch)
             {
-                await Delete(packageName, version, apiKey, log, source, cancellationToken).NoSync();
+                await Delete(packageName, version, apiKey, log, source, cancellationToken)
+                    .NoSync();
             }
 
             if (i + batchSize < total)
             {
-                await DelayUtil.DelaySeconds(secondsPerBatch, _logger, cancellationToken).NoSync();
+                await DelayUtil.DelaySeconds(secondsPerBatch, _logger, cancellationToken)
+                               .NoSync();
             }
         }
 
@@ -218,9 +221,11 @@ public sealed partial class NuGetUtil : INuGetUtil
     public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = NuGetApiIndexUri,
         CancellationToken cancellationToken = default)
     {
-        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken)
+                                              .NoSync();
 
-        string baseUri = await GetServiceUri(_packagePublishService, source, cancellationToken).NoSync();
+        string baseUri = await GetServiceUri(_packagePublishService, source, cancellationToken)
+            .NoSync();
 
         using var httpMessage = new HttpRequestMessage();
 
@@ -233,7 +238,8 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         try
         {
-            HttpResponseMessage result = await client.SendAsync(httpMessage, cancellationToken).NoSync();
+            HttpResponseMessage result = await client.SendAsync(httpMessage, cancellationToken)
+                                                     .NoSync();
             result.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
@@ -255,11 +261,15 @@ public sealed partial class NuGetUtil : INuGetUtil
         }
 
         var visited = new HashSet<(string PackageName, string Version)>(PackageVersionKeyComparer.Instance);
+        var queued = new HashSet<(string PackageName, string Version)>(PackageVersionKeyComparer.Instance);
+        var seenDependencies = new HashSet<KeyValuePair<string, string>>(DependencyPairComparer.Instance);
         var dependencies = new List<KeyValuePair<string, string>>();
         var toProcess = new Queue<(string Id, string Version)>();
         toProcess.Enqueue((packageName, version));
+        queued.Add((packageName, version));
 
-        HttpClient httpClient = await _nuGetClient.Get(CancellationToken.None).NoSync();
+        HttpClient httpClient = await _nuGetClient.Get(cancellationToken)
+                                                  .NoSync();
 
         while (toProcess.Count > 0)
         {
@@ -268,8 +278,12 @@ public sealed partial class NuGetUtil : INuGetUtil
             // Skip if already processed and cached
             if (_dependencyCache.TryGetValue((currentId, currentVersion), out List<KeyValuePair<string, string>>? cachedInnerDependencies))
             {
-                // Add cached dependencies directly to the result
-                dependencies.AddRange(cachedInnerDependencies);
+                foreach (KeyValuePair<string, string> cachedDependency in cachedInnerDependencies)
+                {
+                    if (seenDependencies.Add(cachedDependency))
+                        dependencies.Add(cachedDependency);
+                }
+
                 continue;
             }
 
@@ -277,14 +291,16 @@ public sealed partial class NuGetUtil : INuGetUtil
             if (!visited.Add((currentId, currentVersion)))
                 continue;
 
-            string? catalogUri = await GetCatalogUri(currentId, currentVersion, source, cancellationToken).NoSync();
+            string? catalogUri = await GetCatalogUri(currentId, currentVersion, source, cancellationToken)
+                .NoSync();
 
             if (catalogUri == null)
             {
                 continue;
             }
 
-            NuGetCatalogResponse? packageMetadata = await httpClient.TrySendToType<NuGetCatalogResponse>(catalogUri, _logger, cancellationToken).NoSync();
+            NuGetCatalogResponse? packageMetadata = await httpClient.TrySendToType<NuGetCatalogResponse>(catalogUri, _logger, cancellationToken)
+                                                                    .NoSync();
 
             if (packageMetadata?.DependencyGroups == null)
                 continue;
@@ -298,17 +314,27 @@ public sealed partial class NuGetUtil : INuGetUtil
 
                 foreach (NuGetDependency dependency in group.Dependencies)
                 {
-                    var dependencyPair = new KeyValuePair<string, string>(dependency.DependencyId, ExtractVersionFromRange(dependency.Range));
-                    currentDependencies.Add(dependencyPair);
-                    toProcess.Enqueue((dependency.DependencyId, ExtractVersionFromRange(dependency.Range)));
+                    if (string.IsNullOrWhiteSpace(dependency.DependencyId) || string.IsNullOrWhiteSpace(dependency.Range))
+                        continue;
+
+                    string dependencyVersion = ExtractVersionFromRange(dependency.Range);
+                    var dependencyPair = new KeyValuePair<string, string>(dependency.DependencyId, dependencyVersion);
+
+                    if (seenDependencies.Add(dependencyPair))
+                        dependencies.Add(dependencyPair);
+
+                    if (!currentDependencies.Contains(dependencyPair, DependencyPairComparer.Instance))
+                        currentDependencies.Add(dependencyPair);
+
+                    var dependencyKey = (dependency.DependencyId, dependencyVersion);
+
+                    if (!visited.Contains(dependencyKey) && queued.Add(dependencyKey))
+                        toProcess.Enqueue(dependencyKey);
                 }
             }
 
             // Cache the dependencies for the current package/version
             _dependencyCache[(currentId, currentVersion)] = currentDependencies;
-
-            // Add current dependencies to the result
-            dependencies.AddRange(currentDependencies);
         }
 
         // Cache the final dependencies for the requested package/version
@@ -324,15 +350,18 @@ public sealed partial class NuGetUtil : INuGetUtil
         var skip = 0;
         const int take = 100;
 
-        HttpClient client = await _nuGetClient.Get(cancellationToken).NoSync();
+        HttpClient client = await _nuGetClient.Get(cancellationToken)
+                                              .NoSync();
 
-        string baseUri = await GetServiceUri(_searchQueryService, source, cancellationToken).NoSync();
+        string baseUri = await GetServiceUri(_searchQueryService, source, cancellationToken)
+            .NoSync();
 
         while (true)
         {
             var searchUrl = $"{baseUri}?q={owner}&take={take}&skip={skip}";
 
-            NuGetSearchResponse? altResponse = await client.TrySendToType<NuGetSearchResponse>(searchUrl, _logger, cancellationToken).NoSync();
+            NuGetSearchResponse? altResponse = await client.TrySendToType<NuGetSearchResponse>(searchUrl, _logger, cancellationToken)
+                                                           .NoSync();
 
             if (altResponse == null || !altResponse.Data.Populated())
                 break;
@@ -387,7 +416,8 @@ public sealed partial class NuGetUtil : INuGetUtil
     private static string ExtractVersionFromRange(string range)
     {
         // Use a regex to match a version number at the start of the string
-        Match match = VersionExtractionRegex().Match(range);
+        Match match = VersionExtractionRegex()
+            .Match(range);
         return match.Success ? match.Groups[1].Value : "";
     }
 
@@ -395,7 +425,8 @@ public sealed partial class NuGetUtil : INuGetUtil
     {
         IEnumerable<Version> versions = input.Select(c => new Version(c));
         IOrderedEnumerable<Version> ordered = versions.OrderByDescending(v => v);
-        return ordered.Select(c => c.ToString()).ToList();
+        return ordered.Select(c => c.ToString())
+                      .ToList();
     }
 
     [GeneratedRegex(@"\[(\d+\.\d+\.\d+)")]

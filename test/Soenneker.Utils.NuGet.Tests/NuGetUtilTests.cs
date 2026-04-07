@@ -65,7 +65,7 @@ public class NuGetUtilTests : FixturedUnitTest
     [LocalFact]
     public async ValueTask GetTransitivePackages_should_not_throw()
     {
-        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
+        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "4.0.665", cancellationToken: CancellationToken);
 
         result.Should().NotBeNullOrEmpty();
     }
