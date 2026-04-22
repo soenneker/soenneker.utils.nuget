@@ -3,7 +3,6 @@ using Soenneker.Utils.NuGet.Abstract;
 using Soenneker.Tests.HostedUnit;
 using System.Threading.Tasks;
 using AwesomeAssertions;
-using Soenneker.Facts.Manual;
 using Soenneker.Utils.NuGet.Responses;
 using System.Linq;
 using Soenneker.Utils.NuGet.Responses.Partials;
@@ -21,7 +20,7 @@ public class NuGetUtilTests : HostedUnitTest
         _util = Resolve<INuGetUtil>(true);
     }
 
-    [ManualFact]
+    [Skip("Manual")]
     public async ValueTask Search_should_not_throw()
     {
         NuGetSearchResponse result = await _util.Search("");
@@ -35,27 +34,27 @@ public class NuGetUtilTests : HostedUnitTest
         result.Should().NotBeNull();
     }
 
-    [ManualFact]
+    [Skip("Manual")]
     public async ValueTask GetAllVersions_should_not_throw()
     {
         NuGetPackageVersionsResponse? result = await _util.GetAllVersions("");
         result.Should().NotBeNull();
     }
 
-    [ManualFact]
+    [Skip("Manual")]
     public async ValueTask GetAllListedVersions_should_not_throw()
     {
         List<string> result = await _util.GetAllListedVersions("", true);
         result.Should().NotBeNull();
     }
 
-    [ManualFact]
+    [Skip("Manual")]
     public async ValueTask Delete_should_not_throw()
     {
         await _util.Delete("", "", "");
     }
 
-    [ManualFact]
+    [Skip("Manual")]
     public async ValueTask DeleteAllVersions_should_not_throw()
     {
         await _util.DeleteAllVersions("", "");
