@@ -1,23 +1,22 @@
 using System.Collections.Generic;
 using Soenneker.Utils.NuGet.Abstract;
-using Soenneker.Tests.FixturedUnit;
-using Xunit;
+using Soenneker.Tests.HostedUnit;
 using System.Threading.Tasks;
 using AwesomeAssertions;
 using Soenneker.Facts.Manual;
 using Soenneker.Utils.NuGet.Responses;
 using System.Linq;
 using Soenneker.Utils.NuGet.Responses.Partials;
-using Soenneker.Facts.Local;
+using Soenneker.Tests.Attributes.Local;
 
 namespace Soenneker.Utils.NuGet.Tests;
 
-[Collection("Collection")]
-public class NuGetUtilTests : FixturedUnitTest
+[ClassDataSource<Host>(Shared = SharedType.PerTestSession)]
+public class NuGetUtilTests : HostedUnitTest
 {
     private readonly INuGetUtil _util;
 
-    public NuGetUtilTests(Fixture fixture, ITestOutputHelper output) : base(fixture, output)
+    public NuGetUtilTests(Host host) : base(host)
     {
         _util = Resolve<INuGetUtil>(true);
     }
@@ -29,7 +28,7 @@ public class NuGetUtilTests : FixturedUnitTest
         result.Should().NotBeNull();
     }
 
-    [Fact]
+    [Test]
     public async ValueTask GetIndex_should_not_throw()
     {
         NuGetIndexResponse result = await _util.GetIndex(cancellationToken: CancellationToken);
@@ -62,7 +61,7 @@ public class NuGetUtilTests : FixturedUnitTest
         await _util.DeleteAllVersions("", "");
     }
 
-    [LocalFact]
+    [LocalOnly]
     public async ValueTask GetTransitivePackages_should_not_throw()
     {
         List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "4.0.665", cancellationToken: CancellationToken);
@@ -70,7 +69,7 @@ public class NuGetUtilTests : FixturedUnitTest
         result.Should().NotBeNullOrEmpty();
     }
 
-    [LocalFact]
+    [LocalOnly]
     public async ValueTask GetTransitivePackages_should_not_return_original()
     {
         List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
@@ -81,13 +80,13 @@ public class NuGetUtilTests : FixturedUnitTest
         key.Should().BeNull();
     }
 
-    [LocalFact]
+    [LocalOnly]
     public async ValueTask GetAllPackages()
     {
         List<NuGetDataResponse> result = await _util.GetAllPackages("", cancellationToken: CancellationToken);
     }
 
-    [LocalFact]
+    [LocalOnly]
     public async ValueTask GetTotalDownloads()
     {
        var result = await _util.GetTotalDownloads("soenneker", cancellationToken: CancellationToken);
