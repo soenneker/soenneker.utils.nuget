@@ -30,7 +30,7 @@ public class NuGetUtilTests : HostedUnitTest
     [Test]
     public async ValueTask GetIndex_should_not_throw()
     {
-        NuGetIndexResponse result = await _util.GetIndex(cancellationToken: CancellationToken);
+        NuGetIndexResponse result = await _util.GetIndex(cancellationToken: System.Threading.CancellationToken.None);
         result.Should().NotBeNull();
     }
 
@@ -63,7 +63,7 @@ public class NuGetUtilTests : HostedUnitTest
     [LocalOnly]
     public async ValueTask GetTransitivePackages_should_not_throw()
     {
-        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "4.0.665", cancellationToken: CancellationToken);
+        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "4.0.665", cancellationToken: System.Threading.CancellationToken.None);
 
         result.Should().NotBeNullOrEmpty();
     }
@@ -71,7 +71,7 @@ public class NuGetUtilTests : HostedUnitTest
     [LocalOnly]
     public async ValueTask GetTransitivePackages_should_not_return_original()
     {
-        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: CancellationToken);
+        List<KeyValuePair<string, string>> result = await _util.GetTransitiveDependencies("soenneker.extensions.string", "3.0.326", cancellationToken: System.Threading.CancellationToken.None);
 
         List<string> keys = result.Select(c => c.Key).ToList();
 
@@ -82,12 +82,13 @@ public class NuGetUtilTests : HostedUnitTest
     [LocalOnly]
     public async ValueTask GetAllPackages()
     {
-        List<NuGetDataResponse> result = await _util.GetAllPackages("", cancellationToken: CancellationToken);
+        List<NuGetDataResponse> result = await _util.GetAllPackages("", cancellationToken: System.Threading.CancellationToken.None);
     }
 
     [LocalOnly]
     public async ValueTask GetTotalDownloads()
     {
-       var result = await _util.GetTotalDownloads("soenneker", cancellationToken: CancellationToken);
+       var result = await _util.GetTotalDownloads("soenneker", cancellationToken: System.Threading.CancellationToken.None);
     }
 }
+
