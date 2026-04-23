@@ -54,7 +54,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="4.0.3765" />
+        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="4.0.3768" />
         <PackageReference Include="Soenneker.NuGet.Client" Version="4.0.1659" />
         <PackageReference Include="Soenneker.Utils.Delay" Version="4.0.66" />
     </ItemGroup>
