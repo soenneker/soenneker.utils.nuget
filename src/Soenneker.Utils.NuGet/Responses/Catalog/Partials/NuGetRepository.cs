@@ -2,20 +2,38 @@ using System.Text.Json.Serialization;
 
 namespace Soenneker.Utils.NuGet.Responses.Catalog.Partials;
 
+/// <summary>
+/// Represents the nu get repository record.
+/// </summary>
 public record NuGetRepository
 {
+    /// <summary>
+    /// Gets or sets id.
+    /// </summary>
     [JsonPropertyName("@id")]
     public string? Id { get; set; }
 
+    /// <summary>
+    /// Gets or sets branch.
+    /// </summary>
     [JsonPropertyName("branch")]
     public string? Branch { get; set; }
 
+    /// <summary>
+    /// Gets or sets commit.
+    /// </summary>
     [JsonPropertyName("commit")]
     public string? Commit { get; set; }
 
+    /// <summary>
+    /// Gets or sets type.
+    /// </summary>
     [JsonPropertyName("type")]
     public string? Type { get; set; }
 
+    /// <summary>
+    /// Gets or sets url.
+    /// </summary>
     [JsonPropertyName("url")]
     public string? Url { get; set; }
 }

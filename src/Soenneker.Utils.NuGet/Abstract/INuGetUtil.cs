@@ -20,6 +20,13 @@ public interface INuGetUtil
     /// <returns>The index of available NuGet services.</returns>
     ValueTask<NuGetIndexResponse> GetIndex(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets service uri.
+    /// </summary>
+    /// <param name="service">The service.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task containing the result of the operation.</returns>
     ValueTask<string> GetServiceUri(string service, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -41,6 +48,13 @@ public interface INuGetUtil
     /// <returns>A list of all listed versions of the specified package.</returns>
     ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortDescending = false, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets latest listed version.
+    /// </summary>
+    /// <param name="packageName">The package name.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task containing the result of the operation.</returns>
     ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -73,15 +87,45 @@ public interface INuGetUtil
     /// <returns>All versions of the specified package, or null if the package does not exist.</returns>
     ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets transitive dependencies.
+    /// </summary>
+    /// <param name="packageName">The package name.</param>
+    /// <param name="version">The version.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task containing the result of the operation.</returns>
     ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(
         string packageName,
         string version,
         string source = NuGetApiIndexUri,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets catalog uri.
+    /// </summary>
+    /// <param name="packageName">The package name.</param>
+    /// <param name="version">The version.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task containing the result of the operation.</returns>
     ValueTask<string?> GetCatalogUri(string packageName, string version, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets all packages.
+    /// </summary>
+    /// <param name="owner">The owner.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task containing the result of the operation.</returns>
     ValueTask<List<NuGetDataResponse>> GetAllPackages(string owner, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Gets total downloads.
+    /// </summary>
+    /// <param name="owner">The owner.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task containing the result of the operation.</returns>
     ValueTask<int> GetTotalDownloads(string owner, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 }

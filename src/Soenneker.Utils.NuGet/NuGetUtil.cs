@@ -35,6 +35,9 @@ public sealed partial class NuGetUtil : INuGetUtil
     private const string _packagePublishService = "PackagePublish/2.0.0";
     private const string _registrationService = "RegistrationsBaseUrl";
 
+    /// <summary>
+    /// The nu get api index uri.
+    /// </summary>
     public const string NuGetApiIndexUri = "https://api.nuget.org/v3/index.json";
 
     private readonly ConcurrentDictionary<(string PackageName, string Version), List<KeyValuePair<string, string>>> _dependencyCache = new();
@@ -73,6 +76,13 @@ public sealed partial class NuGetUtil : INuGetUtil
         return response;
     }
 
+    /// <summary>
+    /// Gets service from source.
+    /// </summary>
+    /// <param name="service">The service.</param>
+    /// <param name="source">The source.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task containing the result of the operation.</returns>
     public async ValueTask<string> GetServiceFromSource(string service, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         NuGetIndexResponse index = await GetIndex(source, cancellationToken)
