@@ -77,12 +77,12 @@ public sealed partial class NuGetUtil : INuGetUtil
     }
 
     /// <summary>
-    /// Gets service from source.
+    /// Reads a NuGet service-index resource URL from a package source.
     /// </summary>
-    /// <param name="service">The service.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="service">The NuGet resource type.</param>
+    /// <param name="source">The NuGet package-source URL.</param>
+    /// <param name="cancellationToken">Signals that the operation should stop.</param>
+    /// <returns>The resolved service URL.</returns>
     public async ValueTask<string> GetServiceFromSource(string service, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         NuGetIndexResponse index = await GetIndex(source, cancellationToken)

@@ -13,6 +13,7 @@ public static class NuGetUtilRegistrar
     /// <summary>
     /// Adds <see cref="INuGetUtil"/> as a singleton service. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="INuGetUtil"/> as a singleton service. <para/>.</returns>
     public static IServiceCollection AddNuGetUtilAsSingleton(this IServiceCollection services)
     {
         services.AddNuGetClientAsSingleton().TryAddSingleton<INuGetUtil, NuGetUtil>();
@@ -23,6 +24,7 @@ public static class NuGetUtilRegistrar
     /// <summary>
     /// Adds <see cref="INuGetUtil"/> as a scoped service. <para/>
     /// </summary>
+    /// <returns>Adds <see cref="INuGetUtil"/> as a scoped service. <para/>.</returns>
     public static IServiceCollection AddNuGetUtilAsScoped(this IServiceCollection services)
     {
         services.AddNuGetClientAsSingleton().TryAddScoped<INuGetUtil, NuGetUtil>();

@@ -21,12 +21,12 @@ public interface INuGetUtil
     ValueTask<NuGetIndexResponse> GetIndex(string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets service uri.
+    /// Resolves a named resource URL from a NuGet V3 service index.
     /// </summary>
-    /// <param name="service">The service.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="service">The NuGet resource type.</param>
+    /// <param name="source">The NuGet package-source URL.</param>
+    /// <param name="cancellationToken">Signals that the operation should stop.</param>
+    /// <returns>The resolved service URL.</returns>
     ValueTask<string> GetServiceUri(string service, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -49,12 +49,12 @@ public interface INuGetUtil
     ValueTask<List<string>> GetAllListedVersions(string packageName, bool sortDescending = false, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets latest listed version.
+    /// Finds the latest listed stable version of a package from a NuGet source.
     /// </summary>
-    /// <param name="packageName">The package name.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="packageName">The NuGet package identifier.</param>
+    /// <param name="source">The NuGet package-source URL.</param>
+    /// <param name="cancellationToken">Signals that the operation should stop.</param>
+    /// <returns>The version, or null when none is listed.</returns>
     ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -65,6 +65,7 @@ public interface INuGetUtil
     /// <param name="log">Indicates whether to log the deletion process.</param>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
     /// <param name="cancellationToken"></param>
+    /// <returns>Unlists all versions of a specified package.</returns>
     ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -76,6 +77,7 @@ public interface INuGetUtil
     /// <param name="log">Indicates whether to log the deletion process.</param>
     /// <param name="source">The NuGet API index.json endpoint URL. Defaults to the official NuGet API endpoint.</param>
     /// <param name="cancellationToken"></param>
+    /// <returns>Deletes a specific version of a package.</returns>
     ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -88,13 +90,13 @@ public interface INuGetUtil
     ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets transitive dependencies.
+    /// Resolves the complete dependency closure for a package version.
     /// </summary>
-    /// <param name="packageName">The package name.</param>
-    /// <param name="version">The version.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="packageName">The NuGet package identifier.</param>
+    /// <param name="version">The exact package version.</param>
+    /// <param name="source">The NuGet package-source URL.</param>
+    /// <param name="cancellationToken">Signals that the operation should stop.</param>
+    /// <returns>Identifiers and versions in the dependency closure.</returns>
     ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(
         string packageName,
         string version,
@@ -102,30 +104,30 @@ public interface INuGetUtil
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets catalog uri.
+    /// Finds the catalog-leaf URI for a specific package version.
     /// </summary>
-    /// <param name="packageName">The package name.</param>
-    /// <param name="version">The version.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="packageName">The NuGet package identifier.</param>
+    /// <param name="version">The exact package version.</param>
+    /// <param name="source">The NuGet package-source URL.</param>
+    /// <param name="cancellationToken">Signals that the operation should stop.</param>
+    /// <returns>The catalog URI, or null when absent.</returns>
     ValueTask<string?> GetCatalogUri(string packageName, string version, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets all packages.
+    /// Returns all NuGet registration entries owned by a profile.
     /// </summary>
-    /// <param name="owner">The owner.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="owner">The NuGet profile or owner.</param>
+    /// <param name="source">The NuGet package-source URL.</param>
+    /// <param name="cancellationToken">Signals that the operation should stop.</param>
+    /// <returns>All matching NuGet entries.</returns>
     ValueTask<List<NuGetDataResponse>> GetAllPackages(string owner, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Gets total downloads.
+    /// Sums download counts for all NuGet packages owned by a profile.
     /// </summary>
-    /// <param name="owner">The owner.</param>
-    /// <param name="source">The source.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task containing the result of the operation.</returns>
+    /// <param name="owner">The NuGet profile or owner.</param>
+    /// <param name="source">The NuGet package-source URL.</param>
+    /// <param name="cancellationToken">Signals that the operation should stop.</param>
+    /// <returns>The combined download count.</returns>
     ValueTask<int> GetTotalDownloads(string owner, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 }
