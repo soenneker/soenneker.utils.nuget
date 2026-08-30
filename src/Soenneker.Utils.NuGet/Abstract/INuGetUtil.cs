@@ -69,7 +69,7 @@ public interface INuGetUtil
     ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Deletes a specific version of a package.
+    /// Sends the package source's delete request for a specific version. NuGet.org interprets this as unlisting.
     /// </summary>
     /// <param name="packageName">The name of the package.</param>
     /// <param name="version">The specific version to delete.</param>
@@ -90,13 +90,13 @@ public interface INuGetUtil
     ValueTask<NuGetPackageVersionsResponse?> GetAllVersions(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Resolves the complete dependency closure for a package version.
+    /// Traverses dependency metadata for a package version using the lower version extracted from supported ranges.
     /// </summary>
     /// <param name="packageName">The NuGet package identifier.</param>
     /// <param name="version">The exact package version.</param>
     /// <param name="source">The NuGet package-source URL.</param>
     /// <param name="cancellationToken">Signals that the operation should stop.</param>
-    /// <returns>Identifiers and versions in the dependency closure.</returns>
+    /// <returns>De-duplicated identifiers and extracted versions encountered across dependency groups.</returns>
     ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(
         string packageName,
         string version,

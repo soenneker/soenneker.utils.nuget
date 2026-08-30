@@ -22,19 +22,63 @@ services.AddNuGetUtilAsSingleton();
 
 Then inject `INuGetUtil` wherever you need it.
 
-## Common operations
+Every `source` argument expects a NuGet V3 `index.json` URL, not a package page or flat-container
+URL. Omitting it uses nuget.org.
 
-- `Search()` - Searches for a package by name. Returns the search results for the specified package.
-- `GetIndex()` - Gets the index of available NuGet services from a specified source. Returns the index of available NuGet services.
-- `GetServiceFromSource()` - Reads a NuGet service index and returns the resource URL whose `@type` matches the requested service.
-- `GetServiceUri()` - Returns the requested NuGet service URL and caches it per source/service pair.
-- `GetCatalogUri()` - Returns a package version's catalog-entry URI, or `null` when no matching registration item exists.
-- `GetAllVersions()` - Retrieves all versions of a specified package. Returns all versions of the specified package, or null if the package does not exist.
-- `GetAllListedVersions()` - Retrieves all listed versions of a package. Returns a list of all listed versions of the specified package.
-- `GetLatestListedVersion()` - Returns the highest listed package version, or `null` when none is listed.
-- `DeleteAllVersions()` - Unlists all versions of a specified package.
-- `Delete()` - Deletes a specific version of a package.
-- `GetTransitiveDependencies()` - Recursively resolves, de-duplicates, and caches the transitive package/version list.
-- `GetAllPackages()` - Pages through NuGet search and returns all packages owned by the requested owner.
+## Search and versions
 
-The package also includes 3 additional operations for more specialized cases.
+```csharp
+NuGetSearchResponse? search = await nuGetUtil.Search(
+    "Soenneker.Utils.Json",
+    cancellationToken: cancellationToken);
+
+List<string> versions = await nuGetUtil.GetAllListedVersions(
+    "Soenneker.Utils.Json",
+    sortDescending: true,
+    cancellationToken: cancellationToken);
+
+string? latestStable = await nuGetUtil.GetLatestListedVersion(
+    "Soenneker.Utils.Json",
+    cancellationToken: cancellationToken);
+```
+
+`Search` is a feed search and can return multiple fuzzy matches. Listed-version methods select the
+exact package ID from those results. Descending order follows NuGet semantic-version precedence;
+`GetLatestListedVersion` skips prerelease versions. An empty list or `null` latest value means no
+matching listed version was returned.
+
+`GetAllVersions` uses the feed's package-base-address resource and includes unlisted versions when
+the feed exposes them. `GetIndex`, `GetServiceUri`, and `GetCatalogUri` expose lower-level V3
+service discovery. Discovered service URLs are cached for the utility's lifetime.
+
+## Unlist a package version
+
+```csharp
+await nuGetUtil.Delete(
+    packageName: "Contoso.Package",
+    version: "1.2.3",
+    apiKey: apiKey,
+    cancellationToken: cancellationToken);
+```
+
+On nuget.org, the V3 delete endpoint unlists a package version; it does not erase the package.
+Other feeds can define different delete behavior. `DeleteAllVersions` discovers the listed
+versions and submits the same operation for each one in rate-limited batches, so verify the source,
+package ID, and credentials before calling it. HTTP failures and requested cancellation propagate.
+Setting `log: false` suppresses the per-delete informational and error messages.
+
+## Dependency metadata
+
+```csharp
+List<KeyValuePair<string, string>> dependencies =
+    await nuGetUtil.GetTransitiveDependencies("Contoso.Package", "1.2.3", cancellationToken: cancellationToken);
+```
+
+This is metadata traversal, not NuGet restore resolution. It combines every dependency group,
+does not choose a target framework, and extracts only the supported lower-bound form from version
+ranges before following it. Do not use the result as a lock file or as proof of the versions NuGet
+would install. Results are de-duplicated and cached by source/package/version for the utility's lifetime.
+
+`GetAllPackages(owner)` pages through search results and retains entries whose owners contain the
+requested owner. `GetTotalDownloads(owner)` sums the returned version counts into an `int`; feed
+support and owner metadata determine how complete those results are.

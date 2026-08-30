@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using NuGet.Versioning;
 using Soenneker.Extensions.Enumerable;
 using Soenneker.Extensions.HttpClient;
 using Soenneker.Extensions.String;
@@ -22,7 +23,6 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Utils.NuGet;
 
-/// <inheritdoc cref="INuGetUtil"/>
 public sealed partial class NuGetUtil : INuGetUtil
 {
     private readonly ILogger<NuGetUtil> _logger;
@@ -40,7 +40,8 @@ public sealed partial class NuGetUtil : INuGetUtil
     /// </summary>
     public const string NuGetApiIndexUri = "https://api.nuget.org/v3/index.json";
 
-    private readonly ConcurrentDictionary<(string PackageName, string Version), List<KeyValuePair<string, string>>> _dependencyCache = new();
+    private readonly ConcurrentDictionary<(string Source, string PackageName, string Version), List<KeyValuePair<string, string>>> _dependencyCache =
+        new(SourcePackageVersionKeyComparer.Instance);
 
     public NuGetUtil(ILogger<NuGetUtil> logger, INuGetClient nuGetClient)
     {
@@ -56,7 +57,8 @@ public sealed partial class NuGetUtil : INuGetUtil
         string baseUri = await GetServiceUri(_searchQueryService, source, cancellationToken)
             .NoSync();
 
-        var uri = $"{baseUri}?q={packageName.ToLowerInvariantFast()}&prerelease=true&semVerLevel=2.0.0";
+        string query = Uri.EscapeDataString(packageName.ToLowerInvariantFast());
+        var uri = $"{baseUri}?q={query}&prerelease=true&semVerLevel=2.0.0";
 
         return await client.TrySendToType<NuGetSearchResponse>(uri, _logger, cancellationToken)
                            .NoSync();
@@ -162,14 +164,17 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         var result = new List<string>();
 
-        List<NuGetPackageVersionResponse>? nuGetVersions = searchResult?.Data?.FirstOrDefault()
+        List<NuGetPackageVersionResponse>? nuGetVersions = searchResult?.Data?
+                                                                       .FirstOrDefault(data => string.Equals(data.PackageId, packageName,
+                                                                           StringComparison.OrdinalIgnoreCase))
                                                                        ?.Versions;
 
         if (nuGetVersions.IsNullOrEmpty())
             return result;
 
-        result = nuGetVersions.Select(c => c.VersionNumber)
-                              .ToList()!;
+        result = nuGetVersions.Where(c => c.VersionNumber.HasContent())
+                              .Select(c => c.VersionNumber!)
+                              .ToList();
 
         if (sortByDescending)
             result = OrderVersions(result);
@@ -179,8 +184,8 @@ public sealed partial class NuGetUtil : INuGetUtil
 
     public async ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
-        return (await GetAllListedVersions(packageName, true, source, cancellationToken)
-            .NoSync()).FirstOrDefault();
+        List<string> versions = await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync();
+        return versions.FirstOrDefault(version => !NuGetVersion.Parse(version).IsPrerelease);
     }
 
     public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri,
@@ -244,17 +249,24 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         httpMessage.Headers.Add("X-NuGet-ApiKey", apiKey);
 
-        _logger.LogInformation("Deleting package ({package}) with version ({version})...", packageName, version);
+        if (log)
+            _logger.LogInformation("Deleting package ({package}) with version ({version})...", packageName, version);
 
         try
         {
-            HttpResponseMessage result = await client.SendAsync(httpMessage, cancellationToken)
-                                                     .NoSync();
+            using HttpResponseMessage result = await client.SendAsync(httpMessage, cancellationToken).NoSync();
             result.EnsureSuccessStatusCode();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception deleting package ({package}) with version ({version})", packageName, version);
+            if (log)
+                _logger.LogError(ex, "Exception deleting package ({package}) with version ({version})", packageName, version);
+
+            throw;
         }
     }
 
@@ -265,9 +277,9 @@ public sealed partial class NuGetUtil : INuGetUtil
         version = version.ToLowerInvariantFast();
 
         // Check if the result is already cached
-        if (_dependencyCache.TryGetValue((packageName, version), out List<KeyValuePair<string, string>>? cachedDependencies))
+        if (_dependencyCache.TryGetValue((source, packageName, version), out List<KeyValuePair<string, string>>? cachedDependencies))
         {
-            return cachedDependencies;
+            return [.. cachedDependencies];
         }
 
         var visited = new HashSet<(string PackageName, string Version)>(PackageVersionKeyComparer.Instance);
@@ -286,7 +298,7 @@ public sealed partial class NuGetUtil : INuGetUtil
             (string currentId, string currentVersion) = toProcess.Dequeue();
 
             // Skip if already processed and cached
-            if (_dependencyCache.TryGetValue((currentId, currentVersion), out List<KeyValuePair<string, string>>? cachedInnerDependencies))
+            if (_dependencyCache.TryGetValue((source, currentId, currentVersion), out List<KeyValuePair<string, string>>? cachedInnerDependencies))
             {
                 foreach (KeyValuePair<string, string> cachedDependency in cachedInnerDependencies)
                 {
@@ -315,8 +327,6 @@ public sealed partial class NuGetUtil : INuGetUtil
             if (packageMetadata?.DependencyGroups == null)
                 continue;
 
-            var currentDependencies = new List<KeyValuePair<string, string>>();
-
             foreach (NuGetDependencyGroup group in packageMetadata.DependencyGroups)
             {
                 if (group.Dependencies == null)
@@ -328,13 +338,14 @@ public sealed partial class NuGetUtil : INuGetUtil
                         continue;
 
                     string dependencyVersion = ExtractVersionFromRange(dependency.Range);
+
+                    if (dependencyVersion.IsNullOrEmpty())
+                        continue;
+
                     var dependencyPair = new KeyValuePair<string, string>(dependency.DependencyId, dependencyVersion);
 
                     if (seenDependencies.Add(dependencyPair))
                         dependencies.Add(dependencyPair);
-
-                    if (!currentDependencies.Contains(dependencyPair, DependencyPairComparer.Instance))
-                        currentDependencies.Add(dependencyPair);
 
                     var dependencyKey = (dependency.DependencyId, dependencyVersion);
 
@@ -343,12 +354,10 @@ public sealed partial class NuGetUtil : INuGetUtil
                 }
             }
 
-            // Cache the dependencies for the current package/version
-            _dependencyCache[(currentId, currentVersion)] = currentDependencies;
         }
 
         // Cache the final dependencies for the requested package/version
-        _dependencyCache[(packageName, version)] = dependencies;
+        _dependencyCache[(source, packageName, version)] = [.. dependencies];
 
         return dependencies;
     }
@@ -368,7 +377,8 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         while (true)
         {
-            var searchUrl = $"{baseUri}?q={owner}&take={take}&skip={skip}";
+            string query = Uri.EscapeDataString(owner);
+            var searchUrl = $"{baseUri}?q={query}&take={take}&skip={skip}";
 
             NuGetSearchResponse? altResponse = await client.TrySendToType<NuGetSearchResponse>(searchUrl, _logger, cancellationToken)
                                                            .NoSync();
@@ -433,10 +443,8 @@ public sealed partial class NuGetUtil : INuGetUtil
 
     private static List<string> OrderVersions(List<string> input)
     {
-        IEnumerable<Version> versions = input.Select(c => new Version(c));
-        IOrderedEnumerable<Version> ordered = versions.OrderByDescending(v => v);
-        return ordered.Select(c => c.ToString())
-                      .ToList();
+        return input.OrderByDescending(NuGetVersion.Parse)
+                    .ToList();
     }
 
     [GeneratedRegex(@"\[(\d+\.\d+\.\d+)")]
