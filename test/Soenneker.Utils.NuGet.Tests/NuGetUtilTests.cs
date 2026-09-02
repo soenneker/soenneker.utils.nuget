@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AwesomeAssertions;
 using Soenneker.Utils.NuGet.Responses;
 using System.Linq;
+using System.Threading;
 using Soenneker.Utils.NuGet.Responses.Partials;
 using Soenneker.Tests.Attributes.Local;
 
@@ -28,9 +29,9 @@ public class NuGetUtilTests : HostedUnitTest
     }
 
     [Test]
-    public async ValueTask GetIndex_should_not_throw()
+    public async ValueTask GetIndex_should_not_throw(CancellationToken cancellationToken)
     {
-        NuGetIndexResponse result = await _util.GetIndex(cancellationToken: System.Threading.CancellationToken.None);
+        NuGetIndexResponse result = await _util.GetIndex(cancellationToken: cancellationToken);
         result.Should().NotBeNull();
     }
 
