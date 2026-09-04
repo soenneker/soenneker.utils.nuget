@@ -23,6 +23,7 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Utils.NuGet;
 
+/// <inheritdoc cref="INuGetUtil" />
 public sealed partial class NuGetUtil : INuGetUtil
 {
     private readonly ILogger<NuGetUtil> _logger;
