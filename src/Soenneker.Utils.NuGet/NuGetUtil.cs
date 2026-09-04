@@ -163,19 +163,32 @@ public sealed partial class NuGetUtil : INuGetUtil
         NuGetSearchResponse? searchResult = await Search(packageName, source, cancellationToken)
             .NoSync();
 
-        var result = new List<string>();
+        List<NuGetPackageVersionResponse>? nuGetVersions = null;
+        List<NuGetDataResponse>? data = searchResult?.Data;
 
-        List<NuGetPackageVersionResponse>? nuGetVersions = searchResult?.Data?
-                                                                       .FirstOrDefault(data => string.Equals(data.PackageId, packageName,
-                                                                           StringComparison.OrdinalIgnoreCase))
-                                                                       ?.Versions;
+        if (data is not null)
+        {
+            for (var i = 0; i < data.Count; i++)
+            {
+                NuGetDataResponse candidate = data[i];
+                if (!string.Equals(candidate.PackageId, packageName, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                nuGetVersions = candidate.Versions;
+                break;
+            }
+        }
 
         if (nuGetVersions.IsNullOrEmpty())
-            return result;
+            return [];
 
-        result = nuGetVersions.Where(c => c.VersionNumber.HasContent())
-                              .Select(c => c.VersionNumber!)
-                              .ToList();
+        var result = new List<string>(nuGetVersions.Count);
+        for (var i = 0; i < nuGetVersions.Count; i++)
+        {
+            string? versionNumber = nuGetVersions[i].VersionNumber;
+            if (versionNumber.HasContent())
+                result.Add(versionNumber);
+        }
 
         if (sortByDescending)
             result = OrderVersions(result);
@@ -186,7 +199,14 @@ public sealed partial class NuGetUtil : INuGetUtil
     public async ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default)
     {
         List<string> versions = await GetAllListedVersions(packageName, true, source, cancellationToken).NoSync();
-        return versions.FirstOrDefault(version => !NuGetVersion.Parse(version).IsPrerelease);
+        for (var i = 0; i < versions.Count; i++)
+        {
+            string version = versions[i];
+            if (!NuGetVersion.Parse(version).IsPrerelease)
+                return version;
+        }
+
+        return null;
     }
 
     public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri,
@@ -212,15 +232,12 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         for (var i = 0; i < total; i += batchSize)
         {
-            List<string> batch = versions.Skip(i)
-                                         .Take(batchSize)
-                                         .ToList();
+            int batchEnd = Math.Min(i + batchSize, total);
+            _logger.LogInformation("Deleting batch {start}-{end} of {total}...", i + 1, batchEnd, total);
 
-            _logger.LogInformation("Deleting batch {start}-{end} of {total}...", i + 1, Math.Min(i + batchSize, total), total);
-
-            foreach (string version in batch)
+            for (int versionIndex = i; versionIndex < batchEnd; versionIndex++)
             {
-                await Delete(packageName, version, apiKey, log, source, cancellationToken)
+                await Delete(packageName, versions[versionIndex], apiKey, log, source, cancellationToken)
                     .NoSync();
             }
 
