@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
 using NuGet.Versioning;
 using Soenneker.Extensions.Enumerable;
-using Soenneker.Extensions.HttpClient;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using Soenneker.Extensions.String;
 using Soenneker.Extensions.Task;
 using Soenneker.Extensions.ValueTask;
@@ -23,7 +25,6 @@ using System.Threading.Tasks;
 
 namespace Soenneker.Utils.NuGet;
 
-/// <inheritdoc cref="INuGetUtil" />
 public sealed partial class NuGetUtil : INuGetUtil
 {
     private readonly ILogger<NuGetUtil> _logger;
@@ -61,7 +62,7 @@ public sealed partial class NuGetUtil : INuGetUtil
         string query = Uri.EscapeDataString(packageName.ToLowerInvariantFast());
         var uri = $"{baseUri}?q={query}&prerelease=true&semVerLevel=2.0.0";
 
-        return await client.TrySendToType<NuGetSearchResponse>(uri, _logger, cancellationToken)
+        return await TryGetResponse(client, uri, LibraryJsonContext.Default.NuGetSearchResponse, cancellationToken)
                            .NoSync();
     }
 
@@ -70,7 +71,7 @@ public sealed partial class NuGetUtil : INuGetUtil
         HttpClient client = await _nuGetClient.Get(cancellationToken)
                                               .NoSync();
 
-        NuGetIndexResponse? response = await client.TrySendToType<NuGetIndexResponse>(source, _logger, cancellationToken)
+        NuGetIndexResponse? response = await TryGetResponse(client, source, LibraryJsonContext.Default.NuGetIndexResponse, cancellationToken)
                                                    .NoSync();
 
         if (response == null || response.Resources.IsNullOrEmpty())
@@ -131,8 +132,7 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         var packageRegistrationUri = $"{registrationUri}{packageName.ToLowerInvariantFast()}/{version.ToLowerInvariantFast()}.json";
 
-        NuGetRegistrationResponse? registrationResponse = await client
-                                                                .TrySendToType<NuGetRegistrationResponse>(packageRegistrationUri, _logger, cancellationToken)
+        NuGetRegistrationResponse? registrationResponse = await TryGetResponse(client, packageRegistrationUri, LibraryJsonContext.Default.NuGetRegistrationResponse, cancellationToken)
                                                                 .NoSync();
 
         return registrationResponse?.CatalogEntry;
@@ -151,7 +151,7 @@ public sealed partial class NuGetUtil : INuGetUtil
 
         var packageUrl = $"{packageBaseAddress}{packageName.ToLowerInvariantFast()}/index.json";
 
-        return await client.TrySendToType<NuGetPackageVersionsResponse>(packageUrl, _logger, cancellationToken)
+        return await TryGetResponse(client, packageUrl, LibraryJsonContext.Default.NuGetPackageVersionsResponse, cancellationToken)
                            .NoSync();
     }
 
@@ -339,7 +339,7 @@ public sealed partial class NuGetUtil : INuGetUtil
                 continue;
             }
 
-            NuGetCatalogResponse? packageMetadata = await httpClient.TrySendToType<NuGetCatalogResponse>(catalogUri, _logger, cancellationToken)
+            NuGetCatalogResponse? packageMetadata = await TryGetResponse(httpClient, catalogUri, LibraryJsonContext.Default.NuGetCatalogResponse, cancellationToken)
                                                                     .NoSync();
 
             if (packageMetadata?.DependencyGroups == null)
@@ -398,7 +398,7 @@ public sealed partial class NuGetUtil : INuGetUtil
             string query = Uri.EscapeDataString(owner);
             var searchUrl = $"{baseUri}?q={query}&take={take}&skip={skip}";
 
-            NuGetSearchResponse? altResponse = await client.TrySendToType<NuGetSearchResponse>(searchUrl, _logger, cancellationToken)
+            NuGetSearchResponse? altResponse = await TryGetResponse(client, searchUrl, LibraryJsonContext.Default.NuGetSearchResponse, cancellationToken)
                                                            .NoSync();
 
             if (altResponse == null || !altResponse.Data.Populated())
@@ -449,6 +449,31 @@ public sealed partial class NuGetUtil : INuGetUtil
         }
 
         return totalDownloads;
+    }
+
+    private async ValueTask<T?> TryGetResponse<T>(HttpClient client, string uri, JsonTypeInfo<T> typeInfo, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using HttpResponseMessage response = await client.GetAsync(uri, cancellationToken).NoSync();
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("HTTP request ({uri}) returned a non-successful status code ({statusCode})", uri, response.StatusCode);
+                return default;
+            }
+
+            return await response.Content.ReadFromJsonAsync(typeInfo, cancellationToken).NoSync();
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning("HTTP request to {uri} was canceled.", uri);
+            return default;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception occurred while sending HTTP request or reading response.");
+            return default;
+        }
     }
 
     private static string ExtractVersionFromRange(string range)
