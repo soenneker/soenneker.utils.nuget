@@ -15,7 +15,7 @@ namespace Soenneker.Utils.NuGet.Tests;
 public sealed class NuGetAotTests
 {
     [Test]
-    public async Task Service_index_uses_generated_response_metadata()
+    public async ValueTask Service_index_uses_generated_response_metadata()
     {
         using var client = new FakeClient();
         var util = new NuGetUtil(NullLogger<NuGetUtil>.Instance, client);
