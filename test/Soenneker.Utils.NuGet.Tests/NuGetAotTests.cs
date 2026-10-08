@@ -15,11 +15,11 @@ namespace Soenneker.Utils.NuGet.Tests;
 public sealed class NuGetAotTests
 {
     [Test]
-    public async ValueTask Service_index_uses_generated_response_metadata()
+    public async ValueTask Service_index_uses_generated_response_metadata(CancellationToken cancellationToken)
     {
         using var client = new FakeClient();
         var util = new NuGetUtil(NullLogger<NuGetUtil>.Instance, client);
-        var index = await util.GetIndex("https://example.invalid/v3/index.json");
+        var index = await util.GetIndex("https://example.invalid/v3/index.json", cancellationToken: cancellationToken);
         if (index.Resources?.Count != 1 || index.Resources[0].Type != "SearchQueryService")
             throw new Exception("Generated response metadata did not preserve NuGet property names.");
     }
