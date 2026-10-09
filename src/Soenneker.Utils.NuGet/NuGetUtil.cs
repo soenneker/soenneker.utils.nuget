@@ -8,7 +8,6 @@ using Soenneker.Extensions.String;
 using Soenneker.Extensions.Task;
 using Soenneker.Extensions.ValueTask;
 using Soenneker.NuGet.Client.Abstract;
-using Soenneker.Utils.Delay;
 using Soenneker.Utils.NuGet.Abstract;
 using Soenneker.Utils.NuGet.Responses;
 using Soenneker.Utils.NuGet.Responses.Catalog;
@@ -207,85 +206,6 @@ public sealed partial class NuGetUtil : INuGetUtil
         }
 
         return null;
-    }
-
-    public async ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri,
-        CancellationToken cancellationToken = default)
-    {
-        _logger.LogInformation("Deleting all versions of package ({package})...", packageName);
-
-        List<string> versions = await GetAllListedVersions(packageName, false, source, cancellationToken)
-            .NoSync();
-
-        int total = versions.Count;
-        _logger.LogInformation("Found {count} versions of package ({package}) to delete.", total, packageName);
-
-        const int batchSize = 240;
-        const int secondsPerBatch = 3660; // 1 batch/hour = 3600 seconds + grace
-
-        var batchCount = (int)Math.Ceiling(total / (double)batchSize);
-        TimeSpan estimatedDuration = TimeSpan.FromSeconds(batchCount * secondsPerBatch);
-
-        _logger.LogInformation(
-            "Estimated time to delete {Total} versions: {EstimatedDurationHours}h {EstimatedDurationMinutes}m ({BatchCount} batches at 1 per hour).", total,
-            estimatedDuration.Hours, estimatedDuration.Minutes, batchCount);
-
-        for (var i = 0; i < total; i += batchSize)
-        {
-            int batchEnd = Math.Min(i + batchSize, total);
-            _logger.LogInformation("Deleting batch {start}-{end} of {total}...", i + 1, batchEnd, total);
-
-            for (int versionIndex = i; versionIndex < batchEnd; versionIndex++)
-            {
-                await Delete(packageName, versions[versionIndex], apiKey, log, source, cancellationToken)
-                    .NoSync();
-            }
-
-            if (i + batchSize < total)
-            {
-                await DelayUtil.DelaySeconds(secondsPerBatch, _logger, cancellationToken)
-                               .NoSync();
-            }
-        }
-
-        _logger.LogInformation("Finished deleting all versions of package ({package}).", packageName);
-    }
-
-    public async ValueTask Delete(string packageName, string version, string apiKey, bool log = true, string source = NuGetApiIndexUri,
-        CancellationToken cancellationToken = default)
-    {
-        HttpClient client = await _nuGetClient.Get(cancellationToken)
-                                              .NoSync();
-
-        string baseUri = await GetServiceUri(_packagePublishService, source, cancellationToken)
-            .NoSync();
-
-        using var httpMessage = new HttpRequestMessage();
-
-        httpMessage.Method = HttpMethod.Delete;
-        httpMessage.RequestUri = new Uri($"{baseUri}/{packageName.ToLowerInvariantFast()}/{version}");
-
-        httpMessage.Headers.Add("X-NuGet-ApiKey", apiKey);
-
-        if (log)
-            _logger.LogInformation("Deleting package ({package}) with version ({version})...", packageName, version);
-
-        try
-        {
-            using HttpResponseMessage result = await client.SendAsync(httpMessage, cancellationToken).NoSync();
-            result.EnsureSuccessStatusCode();
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception ex)
-        {
-            if (log)
-                _logger.LogError(ex, "Exception deleting package ({package}) with version ({version})", packageName, version);
-
-            throw;
-        }
     }
 
     public async ValueTask<List<KeyValuePair<string, string>>> GetTransitiveDependencies(string packageName, string version, string source = NuGetApiIndexUri,

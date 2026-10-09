@@ -58,7 +58,8 @@ public interface INuGetUtil
     ValueTask<string?> GetLatestListedVersion(string packageName, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Unlists all versions of a specified package.
+    /// Unlists all listed versions of a specified package, with up to four concurrent deletes.
+    /// Requests share a process-wide limit of 240 attempts per rolling hour per publish authority and API key.
     /// </summary>
     /// <param name="packageName">The name of the package to delete.</param>
     /// <param name="apiKey">The API key for authentication.</param>
@@ -69,7 +70,24 @@ public interface INuGetUtil
     ValueTask DeleteAllVersions(string packageName, string apiKey, bool log = true, string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Unlists all listed versions with configurable concurrency. Requests share a process-wide limit of
+    /// 240 attempts per rolling hour per publish authority and API key, including other utility instances.
+    /// HTTP 429 responses pause requests sharing that quota using Retry-After (or one minute when absent),
+    /// with at most three retries per version. Cancellation and failures propagate to the caller.
+    /// </summary>
+    /// <param name="packageName">The package identifier.</param>
+    /// <param name="apiKey">The API key for authentication.</param>
+    /// <param name="maxConcurrency">The maximum number of concurrent deletes for this call; must be positive.</param>
+    /// <param name="log">Whether to log deletion progress, response status, request duration, and quota waits.</param>
+    /// <param name="source">The NuGet V3 service-index URL.</param>
+    /// <param name="cancellationToken">Cancels requests and rate-limit waits.</param>
+    /// <returns>A task completing when all discovered listed versions have been unlisted.</returns>
+    ValueTask DeleteAllVersions(string packageName, string apiKey, int maxConcurrency, bool log = true,
+        string source = NuGetApiIndexUri, CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Sends the package source's delete request for a specific version. NuGet.org interprets this as unlisting.
+    /// Shares the bulk-delete quota and retries HTTP 429 up to three times, honoring Retry-After.
     /// </summary>
     /// <param name="packageName">The name of the package.</param>
     /// <param name="version">The specific version to delete.</param>
