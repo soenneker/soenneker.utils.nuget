@@ -76,7 +76,7 @@ public sealed partial class NuGetUtil
                         ?? TimeSpan.FromMinutes(1);
                     if (delay < TimeSpan.FromSeconds(1))
                         delay = TimeSpan.FromSeconds(1);
-                    limiter.Pause(delay);
+                    await limiter.Pause(delay).ConfigureAwait(false);
                     if (log)
                         _logger.LogWarning("NuGet throttled deletion of ({Package}) version ({Version}); pausing this API key for {Seconds:F2}s.",
                             packageName, version, delay.TotalSeconds);

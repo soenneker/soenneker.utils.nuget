@@ -15,32 +15,32 @@ public sealed class NuGetDeleteTests
     private const string Source = "https://delete.invalid/v3/index.json";
 
     [Test]
-    public void Quota_expires_per_request_instead_of_sleeping_after_a_batch()
+    public async Task Quota_expires_per_request_instead_of_sleeping_after_a_batch()
     {
         var clock = new DeleteTestClock();
         var limiter = new NuGetDeleteRateLimiter(clock);
         for (var i = 0; i < 120; i++)
-            limiter.TryAcquire().Should().Be(TimeSpan.Zero);
+            (await limiter.TryAcquire()).Should().Be(TimeSpan.Zero);
         clock.Advance(TimeSpan.FromMinutes(30));
         for (var i = 0; i < 120; i++)
-            limiter.TryAcquire().Should().Be(TimeSpan.Zero);
-        limiter.TryAcquire().Should().Be(TimeSpan.FromMinutes(30));
+            (await limiter.TryAcquire()).Should().Be(TimeSpan.Zero);
+        (await limiter.TryAcquire()).Should().Be(TimeSpan.FromMinutes(30));
         clock.Advance(TimeSpan.FromMinutes(30));
         for (var i = 0; i < 120; i++)
-            limiter.TryAcquire().Should().Be(TimeSpan.Zero);
-        limiter.TryAcquire().Should().Be(TimeSpan.FromMinutes(30));
+            (await limiter.TryAcquire()).Should().Be(TimeSpan.Zero);
+        (await limiter.TryAcquire()).Should().Be(TimeSpan.FromMinutes(30));
     }
 
     [Test]
-    public void Shared_pause_can_only_be_extended_and_keys_are_isolated()
+    public async Task Shared_pause_can_only_be_extended_and_keys_are_isolated()
     {
         var clock = new DeleteTestClock();
         var limiter = new NuGetDeleteRateLimiter(clock);
-        limiter.Pause(TimeSpan.FromMinutes(2));
-        limiter.Pause(TimeSpan.FromMinutes(1));
-        limiter.TryAcquire().Should().Be(TimeSpan.FromMinutes(2));
+        await limiter.Pause(TimeSpan.FromMinutes(2));
+        await limiter.Pause(TimeSpan.FromMinutes(1));
+        (await limiter.TryAcquire()).Should().Be(TimeSpan.FromMinutes(2));
         clock.Advance(TimeSpan.FromMinutes(2));
-        limiter.TryAcquire().Should().Be(TimeSpan.Zero);
+        (await limiter.TryAcquire()).Should().Be(TimeSpan.Zero);
 
         string key = Guid.NewGuid().ToString();
         var uri = new Uri(Source);
@@ -52,7 +52,7 @@ public sealed class NuGetDeleteTests
     public async Task Rate_limit_wait_is_cancellable(CancellationToken cancellationToken)
     {
         var limiter = new NuGetDeleteRateLimiter();
-        limiter.Pause(TimeSpan.FromHours(1));
+        await limiter.Pause(TimeSpan.FromHours(1));
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         Task wait = limiter.Wait(stop.Token).AsTask();
         wait.IsCompleted.Should().BeFalse();
@@ -147,13 +147,13 @@ public sealed class NuGetDeleteTests
     }
 
     [Test]
-    public void Concurrent_callers_cannot_exceed_the_shared_quota()
+    public async Task Concurrent_callers_cannot_exceed_the_shared_quota()
     {
         var limiter = new NuGetDeleteRateLimiter();
         var admitted = 0;
-        Parallel.For(0, 1000, _ =>
+        await Parallel.ForAsync(0, 1000, async (_, token) =>
         {
-            if (limiter.TryAcquire() == TimeSpan.Zero)
+            if (await limiter.TryAcquire(token) == TimeSpan.Zero)
                 Interlocked.Increment(ref admitted);
         });
         admitted.Should().Be(240);

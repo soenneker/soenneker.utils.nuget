@@ -1,4 +1,5 @@
 using System;
+using Soenneker.Asyncs.Locks;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -13,7 +14,7 @@ internal sealed class NuGetDeleteRateLimiter
     // Share quotas across utility instances and package cleanups, without retaining API keys.
     private static readonly ConcurrentDictionary<(string Authority, string KeyHash), NuGetDeleteRateLimiter> _limiters = new();
     private readonly Queue<DateTimeOffset> _requests = new();
-    private readonly object _lock = new();
+    private readonly AsyncLock _lock = new();
     private readonly TimeProvider _timeProvider;
     private DateTimeOffset _pausedUntil;
 
@@ -25,9 +26,9 @@ internal sealed class NuGetDeleteRateLimiter
         return _limiters.GetOrAdd((publishUri.GetLeftPart(UriPartial.Authority), keyHash), static _ => new NuGetDeleteRateLimiter());
     }
 
-    internal TimeSpan TryAcquire()
+    internal async ValueTask<TimeSpan> TryAcquire(CancellationToken cancellationToken = default)
     {
-        lock (_lock)
+        using (await _lock.Lock(cancellationToken).ConfigureAwait(false))
         {
             DateTimeOffset now = _timeProvider.GetUtcNow();
             while (_requests.TryPeek(out DateTimeOffset oldest) && now - oldest >= TimeSpan.FromHours(1))
@@ -50,7 +51,7 @@ internal sealed class NuGetDeleteRateLimiter
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            TimeSpan delay = TryAcquire();
+            TimeSpan delay = await TryAcquire(cancellationToken).ConfigureAwait(false);
             if (delay == TimeSpan.Zero)
                 return;
 
@@ -60,9 +61,9 @@ internal sealed class NuGetDeleteRateLimiter
         }
     }
 
-    internal void Pause(TimeSpan delay)
+    internal async ValueTask Pause(TimeSpan delay)
     {
-        lock (_lock)
+        using (await _lock.Lock().ConfigureAwait(false))
         {
             DateTimeOffset until = _timeProvider.GetUtcNow().Add(delay);
             if (until > _pausedUntil)
