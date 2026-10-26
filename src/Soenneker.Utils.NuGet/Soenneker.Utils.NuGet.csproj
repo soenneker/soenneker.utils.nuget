@@ -57,8 +57,8 @@
     <ItemGroup>
         <PackageReference Include="Soenneker.Asyncs.Locks" Version="11.0.118" />
         <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
-        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="11.0.4146" />
-        <PackageReference Include="Soenneker.NuGet.Client" Version="11.0.1809" />
+        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="11.0.4149" />
+        <PackageReference Include="Soenneker.NuGet.Client" Version="11.0.1810" />
     </ItemGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="Soenneker.Utils.NuGet.Tests" />
