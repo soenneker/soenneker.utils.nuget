@@ -56,10 +56,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Soenneker.Asyncs.Locks" Version="4.0.115" />
+        <PackageReference Include="Soenneker.Asyncs.Locks" Version="11.0.119" />
         <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
-        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="4.0.4141" />
-        <PackageReference Include="Soenneker.NuGet.Client" Version="4.0.1808" />
+        <PackageReference Include="Soenneker.Extensions.HttpClient" Version="11.0.4151" />
+        <PackageReference Include="Soenneker.NuGet.Client" Version="11.0.1810" />
     </ItemGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="Soenneker.Utils.NuGet.Tests" />
