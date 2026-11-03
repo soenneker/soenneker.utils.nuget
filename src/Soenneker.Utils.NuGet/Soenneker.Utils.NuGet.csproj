@@ -58,7 +58,7 @@
     <ItemGroup>
         <PackageReference Include="NuGet.Versioning" Version="7.9.0" />
         <PackageReference Include="Soenneker.Extensions.HttpClient" Version="11.0.4171" />
-        <PackageReference Include="Soenneker.NuGet.Client" Version="11.0.1817" />
+        <PackageReference Include="Soenneker.NuGet.Client" Version="11.0.1818" />
     </ItemGroup>
     <ItemGroup>
         <InternalsVisibleTo Include="Soenneker.Utils.NuGet.Tests" />
