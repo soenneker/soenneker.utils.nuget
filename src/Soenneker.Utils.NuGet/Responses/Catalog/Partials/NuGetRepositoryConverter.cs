@@ -1,7 +1,6 @@
 using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Soenneker.Utils.NuGet.Responses.Catalog.Partials;
 
@@ -29,7 +28,7 @@ public sealed class NuGetRepositoryConverter : JsonConverter<NuGetRepository?>
         }
 
         if (reader.TokenType == JsonTokenType.StartObject)
-            return JsonSerializer.Deserialize(ref reader, (JsonTypeInfo<NuGetRepository>)options.GetTypeInfo(typeof(NuGetRepository)));
+            return JsonSerializer.Deserialize(ref reader, options.GetTypeInfo<NuGetRepository>());
 
         throw new JsonException($"Unexpected token {reader.TokenType} when reading repository.");
     }
@@ -48,6 +47,6 @@ public sealed class NuGetRepositoryConverter : JsonConverter<NuGetRepository?>
             return;
         }
 
-        JsonSerializer.Serialize(writer, value, (JsonTypeInfo<NuGetRepository>)options.GetTypeInfo(typeof(NuGetRepository)));
+        JsonSerializer.Serialize(writer, value, options.GetTypeInfo<NuGetRepository>());
     }
 }
